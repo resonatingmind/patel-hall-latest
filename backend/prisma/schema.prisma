@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id
+  email     String   @unique
+  role      Role
+  createdAt DateTime @default(now())
+
+  student   Student?
+  administration Administration?
+}
+
+enum Role {
+  STUDENT
+  COUNCIL
+  WARDEN
+  ADMIN
+}
+
+enum Department {
+  CS
+  EC
+  EE
+  ME
+  CH
+  CE
+  AE
+  IM
+  IE
+  NA
+  AG
+  MI
+  MT
+  BT
+  MF
+  AR
+  MA
+  PH
+  CY
+  HS
+  GG
+  EX
+}
+
+enum JobProfile {
+  SDE
+  DATA
+  CONSULT
+  FINANCE
+  CORE
+  PRODUCT
+  OTHERS
+}
+
+enum Block {
+  A
+  B
+  C
+  D
+}
+
+model Student {
+  id          String      @id @default(uuid())
+
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id])
+
+  firstName   String
+  lastName    String
+  rollNumber  String      @unique
+
+  department  Department
+
+  block       Block
+  roomNumber  Int
+
+  joiningYear Int
+
+  jobProfile  JobProfile?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  positions           StudentPosition[]
+  participationLogs   ParticipationLog[]
+  grievances          Grievance[]
+}
+
+model Administration {
+  id        String @id
+  user      User   @relation(fields: [id], references: [id])
+
+  firstName String
+  lastName  String
+  position  String  // Warden, Assistant Warden, Caretaker, etc.
+  phone     String?
+  office    String?
+}
+
+model HallPosition {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String?
+
+  studentPositions StudentPosition[]
+}
+
+model StudentPosition {
+  id          String   @id @default(uuid())
+
+  studentId   String
+  positionId  String
+
+  startDate   DateTime
+  endDate     DateTime?
+
+  student     Student      @relation(fields: [studentId], references: [id])
+  position    HallPosition @relation(fields: [positionId], references: [id])
+
+  @@unique([studentId, positionId])
+}
+
+enum ParticipationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ParticipationLog {
+  id        String   @id @default(uuid())
+
+  studentId String
+  eventName String
+  role      String?
+
+  status    ParticipationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student   Student @relation(fields: [studentId], references: [id])
+}
+
+model Alumni {
+  id         String   @id @default(uuid())
+  fullName   String
+  department String
+  batchYear  Int
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Grievance {
+  id          String   @id @default(uuid())
+  problem     String
+  image       String?   // URL or path of uploaded image
+  date        DateTime  @default(now())
+
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id])
+
+  createdAt   DateTime  @default(now())
+}
