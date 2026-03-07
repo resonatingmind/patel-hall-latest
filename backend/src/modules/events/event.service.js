@@ -17,3 +17,21 @@ export const getEvents = async (category) => {
     });
 };
 
+export const createEvent = async (data) => {
+    return await prisma.event.create({
+        data,
+    });
+};
+
+export const updateEvent = async (id, data) => {
+    return await prisma.event.update({
+        where: { id },
+        data,
+    });
+};
+
+export const deleteEvent = async (id) => {
+    return await prisma.event.delete({
+        where: { id },
+    });
+};
