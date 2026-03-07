@@ -6,7 +6,7 @@ import authorize from "../../middleware/role.middleware.js";
 const router = express.Router();
 
 // Get all students (Wardens, Council, Admin)
-router.get("/", authenticate, authorize("WARDEN", "ADMIN", "COUNCIL"), getStudents);
+router.get("/", authenticate, authorize("WARDEN", "ADMIN", "COUNCIL", "STUDENT"), getStudents);
 
 // Add single student (Warden, Admin)
 router.post("/create", authenticate, authorize("WARDEN", "ADMIN"), createStudent);
