@@ -21,6 +21,8 @@ import WardenStudentDatabase from "../pages/portals/warden/WardenStudentDatabase
 import WardenCouncil from "../pages/portals/warden/WardenCouncil";
 import WardenAlumni from "../pages/portals/warden/WardenAlumni";
 import WardenGrievance from "../pages/portals/warden/WardenGrievance";
+import AdminStudentDatabase from "../pages/portals/admin/AdminStudentDatabase";
+import AdminAdministrativeMembers from "../pages/portals/admin/AdminAdministrativeMembers";
 import ProtectedRoute from "../components/layout/ProtectedRoute";
 
 const AppRoutes = () => {
@@ -53,6 +55,8 @@ const AppRoutes = () => {
         <Route path="/portal/council" element={<WardenCouncil />} />
         <Route path="/portal/alumni" element={<WardenAlumni />} />
         <Route path="/portal/grievance" element={<WardenGrievance />} />
+        <Route path="/portal/admin/student-database" element={<AdminStudentDatabase />} />
+        <Route path="/portal/admin/administration" element={<AdminAdministrativeMembers />} />
       </Route>
 
       {/* Example of Role Specific Route */}

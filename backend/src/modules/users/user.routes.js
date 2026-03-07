@@ -1,5 +1,14 @@
 import express from "express";
-import { createUser, bulkCreateUsers, getMe, getUsersByRole } from "./user.controller.js";
+import {
+  createUser,
+  bulkCreateUsers,
+  getMe,
+  getUsersByRole,
+  createAdministrativeMember,
+  getAllAdministrativeMembers,
+  updateAdministrativeMember,
+  deleteAdministrativeMember,
+} from "./user.controller.js";
 import authenticate from "../../middleware/auth.middleware.js";
 import authorize from "../../middleware/role.middleware.js";
 
@@ -9,9 +18,47 @@ const router = express.Router();
 router.get("/me", authenticate, getMe);
 
 // Allow fetching users by role
-router.get("/role/:role", authenticate, authorize("ADMIN", "WARDEN", "COUNCIL"), getUsersByRole);
+router.get(
+  "/role/:role",
+  authenticate,
+  authorize("ADMIN", "WARDEN", "COUNCIL"),
+  getUsersByRole
+);
 
+// Base user creation (Supabase + Prisma)
 router.post("/create", authenticate, authorize("ADMIN"), createUser);
 router.post("/bulk-create", authenticate, authorize("ADMIN"), bulkCreateUsers);
 
-export default router; 
+// Create an Administrative member (User + Administration profile)
+router.post(
+  "/administration/create",
+  authenticate,
+  authorize("ADMIN"),
+  createAdministrativeMember
+);
+
+// Get all administrative members
+router.get(
+  "/administration",
+  authenticate,
+  authorize("ADMIN"),
+  getAllAdministrativeMembers
+);
+
+// Update an administrative member
+router.put(
+  "/administration/:id",
+  authenticate,
+  authorize("ADMIN"),
+  updateAdministrativeMember
+);
+
+// Delete an administrative member
+router.delete(
+  "/administration/:id",
+  authenticate,
+  authorize("ADMIN"),
+  deleteAdministrativeMember
+);
+
+export default router;

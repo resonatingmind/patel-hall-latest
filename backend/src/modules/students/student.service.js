@@ -40,7 +40,7 @@ export const createStudentService = async (studentData) => {
   const authUser = data.user;
 
   // 2️⃣ Create User in Prisma DB (Role: STUDENT)
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       id: authUser.id,
       email: authUser.email,
@@ -51,7 +51,7 @@ export const createStudentService = async (studentData) => {
   // 3️⃣ Create Student Profile in Prisma
   const student = await prisma.student.create({
     data: {
-      userId: authUser.id, 
+      userId: authUser.id,
       firstName,
       lastName,
       rollNumber,
@@ -90,4 +90,75 @@ export const bulkCreateStudentsService = async (studentsList) => {
     createdStudents,
     failedStudents,
   };
+};
+
+// Update a student
+export const updateStudentService = async (studentId, updateData) => {
+  const { firstName, lastName, department, block, roomNumber, joiningYear, jobProfile } = updateData;
+
+  const student = await prisma.student.update({
+    where: { id: studentId },
+    data: {
+      firstName: firstName ?? undefined,
+      lastName: lastName ?? undefined,
+      department: department ?? undefined,
+      block: block ?? undefined,
+      roomNumber: roomNumber !== undefined ? parseInt(roomNumber) : undefined,
+      joiningYear: joiningYear !== undefined ? parseInt(joiningYear) : undefined,
+      jobProfile: jobProfile ?? undefined,
+    },
+  });
+
+  return student;
+};
+
+// Delete a student and linked user/auth account
+export const deleteStudentService = async (studentId) => {
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+  });
+
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  const userId = student.userId;
+
+  await prisma.student.delete({
+    where: { id: studentId },
+  });
+
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (error) {
+    throw new Error(`Failed to delete user from auth: ${error.message}`);
+  }
+
+  return { success: true };
+};
+
+// Reset a student's password to their roll number
+export const resetStudentPasswordService = async (studentId) => {
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+  });
+
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  const { userId, rollNumber } = student;
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    password: rollNumber,
+  });
+
+  if (error) {
+    throw new Error(`Failed to reset password: ${error.message}`);
+  }
+
+  return { success: true };
 };

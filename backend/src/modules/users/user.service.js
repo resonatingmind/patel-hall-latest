@@ -101,4 +101,108 @@ const getUsersByRoleService = async (role) => {
   }));
 };
 
-export { createUserService, bulkCreateUsersService, getMeService, getUsersByRoleService };
+// Get all administrative members (ADMIN and WARDEN roles)
+const getAllAdministrativeMembersService = async () => {
+  const users = await prisma.user.findMany({
+    where: {
+      role: {
+        in: ['ADMIN', 'WARDEN']
+      }
+    },
+    include: {
+      administration: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  return users.map(user => ({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+    firstName: user.administration?.firstName || '',
+    lastName: user.administration?.lastName || '',
+    position: user.administration?.position || '',
+    phone: user.administration?.phone || null,
+    office: user.administration?.office || null,
+    name: user.administration 
+      ? `${user.administration.firstName} ${user.administration.lastName}`.trim() 
+      : null,
+  }));
+};
+
+// Update an administrative member
+const updateAdministrativeMemberService = async (userId, updateData) => {
+  const { firstName, lastName, position, phone, office, role } = updateData;
+
+  // Update user role if provided
+  if (role) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: role.toUpperCase() }
+    });
+  }
+
+  // Update administration profile
+  const administration = await prisma.administration.upsert({
+    where: { id: userId },
+    update: {
+      firstName: firstName || undefined,
+      lastName: lastName || undefined,
+      position: position || undefined,
+      phone: phone || undefined,
+      office: office || undefined,
+    },
+    create: {
+      id: userId,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      position: position || '',
+      phone: phone || null,
+      office: office || null,
+    }
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { administration: true }
+  });
+
+  return {
+    ...user,
+    administration
+  };
+};
+
+// Delete an administrative member
+const deleteAdministrativeMemberService = async (userId) => {
+  // Delete administration profile first (due to foreign key constraint)
+  await prisma.administration.deleteMany({
+    where: { id: userId }
+  });
+
+  // Delete user from Prisma
+  await prisma.user.delete({
+    where: { id: userId }
+  });
+
+  // Delete user from Supabase Auth
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (error) {
+    throw new Error(`Failed to delete user from auth: ${error.message}`);
+  }
+
+  return { success: true };
+};
+
+export { 
+  createUserService, 
+  bulkCreateUsersService, 
+  getMeService, 
+  getUsersByRoleService,
+  getAllAdministrativeMembersService,
+  updateAdministrativeMemberService,
+  deleteAdministrativeMemberService
+};

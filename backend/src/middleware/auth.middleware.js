@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase.js";
+import { prisma } from "../config/prisma.js";
 
 const authenticate = async (req, res, next) => {
   try {
@@ -16,19 +17,26 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    // attach user to request
+    // Attach Supabase auth user to request
     req.user = data.user;
 
-    // Fetch user from Supabase to attach role
-    const { data: dbUser } = await supabase
-      .from('User')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
+    // Fetch user (and role) from Prisma DB using the Supabase auth user id
+    const dbUser = await prisma.user.findUnique({
+      where: { id: data.user.id },
+      select: { role: true },
+    });
 
-    if (dbUser) {
-      req.role = dbUser.role;
+    if (!dbUser) {
+      console.warn(
+        "Authenticated Supabase user has no corresponding Prisma user row:",
+        data.user.id
+      );
+      return res
+        .status(403)
+        .json({ message: "User not found in application database" });
     }
+
+    req.role = dbUser.role; // e.g. "ADMIN", "WARDEN", "STUDENT", ...
 
     next();
   } catch (err) {

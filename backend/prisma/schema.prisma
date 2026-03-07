@@ -133,12 +133,32 @@ enum ParticipationStatus {
   REJECTED
 }
 
+enum EventCategory {
+  SPORTS
+  SOCIAL_AND_CULTURAL @map("Social and Cultural activities")
+  TECHNOLOGY          @map("Technology")
+  HALL_AFFAIRS        @map("Hall affairs")
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  category  EventCategory
+  logs      ParticipationLog[]
+
+  createdAt DateTime @default(now())
+}
+
 model ParticipationLog {
   id        String   @id @default(uuid())
 
   studentId String
-  eventName String
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
   role      String?
+  category  String?
+  year      String?
+  proof     String?
 
   status    ParticipationStatus @default(PENDING)
 

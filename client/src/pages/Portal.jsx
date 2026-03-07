@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import MemberPortal from './portals/member/MemberPortal';
 import CouncilPortal from './portals/council/CouncilPortal';
 import WarderPortal from './portals/warden/WardenPortal';
+import AdminPortal from './portals/admin/AdminPortal';
 import { useAuth } from '../context/AuthContext';
 
 const Portal = () => {
@@ -17,7 +18,7 @@ const Portal = () => {
             {role === 'STUDENT' && <MemberPortal />}
             {role === 'COUNCIL' && <CouncilPortal />}
             {role === 'WARDEN' && <WarderPortal />}
-            {role === 'ADMIN' && <WarderPortal />}
+            {role === 'ADMIN' && <AdminPortal />}
         </div>
     );
 };
