@@ -24,6 +24,10 @@ import WardenGrievance from "../pages/portals/warden/WardenGrievance";
 import AdminStudentDatabase from "../pages/portals/admin/AdminStudentDatabase";
 import AdminAdministrativeMembers from "../pages/portals/admin/AdminAdministrativeMembers";
 import ProtectedRoute from "../components/layout/ProtectedRoute";
+import CouncilManageEvents from "../pages/portals/council/CouncilManageEvents";
+import CouncilBatch from "../pages/portals/council/CouncilBatch";
+import CouncilAlumni from "../pages/portals/council/CouncilAlumni";
+import CouncilGrievance from "../pages/portals/council/CouncilGrievance";
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -57,6 +61,10 @@ const AppRoutes = () => {
         <Route path="/portal/grievance" element={<WardenGrievance />} />
         <Route path="/portal/admin/student-database" element={<AdminStudentDatabase />} />
         <Route path="/portal/admin/administration" element={<AdminAdministrativeMembers />} />
+        <Route path="/portal/council/manage-events" element={<CouncilManageEvents />} />
+        <Route path="/portal/council/batch" element={<CouncilBatch />} />
+        <Route path="/portal/council/alumni" element={<CouncilAlumni />} />
+        <Route path="/portal/council/grievance" element={<CouncilGrievance />} />
       </Route>
 
       {/* Example of Role Specific Route */}
