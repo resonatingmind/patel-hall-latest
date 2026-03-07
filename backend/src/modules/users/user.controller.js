@@ -14,6 +14,8 @@ const getMe = async (req, res) => {
     res.json({
       role: user.role,
       email: user.email,
+      student: user.student,
+      administration: user.administration,
     });
   } catch (err) {
     res.status(404).json({ message: err.message });

@@ -1,36 +1,86 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MdReportProblem, MdListAlt, MdGroups, MdSportsCricket, MdTheaterComedy, MdComputer, MdPerson, MdEdit, MdLogout, MdSchool } from "react-icons/md";
+import { useAuth } from '../../../context/AuthContext';
+import axios from 'axios';
+import { supabase } from '../../../lib/supabaseClient';
+
+const DEPARTMENT_MAP = {
+  CS: "Computer Science & Engg",
+  EC: "Electronics & Electrical Comm",
+  EE: "Electrical Engineering",
+  ME: "Mechanical Engineering",
+  CH: "Chemical Engineering",
+  CE: "Civil Engineering",
+  AE: "Aerospace Engineering",
+  IM: "Industrial & Systems Engg",
+  IE: "Instrumentation Engineering",
+  NA: "Ocean Engg & Naval Architecture",
+  AG: "Agricultural & Food Engg",
+  MI: "Mining Engineering",
+  MT: "Metallurgical & Materials Engg",
+  BT: "Biotechnology",
+  MF: "Manufacturing Science & Engg",
+  AR: "Architecture & Regional Planning",
+  MA: "Mathematics",
+  PH: "Physics",
+  CY: "Chemistry",
+  HS: "Humanities & Social Sciences",
+  GG: "Geology & Geophysics",
+  EX: "Exploration Geophysics"
+};
 
 const MemberPortal = () => {
+    const { user } = useAuth();
+    const [userData, setUserData] = useState(null);
+
     useEffect(() => {
         window.scrollTo(0, 0);
+        fetchUserData();
     }, []);
 
-    // Mock Data
+    const fetchUserData = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            
+            if (!token) return;
+
+            const res = await axios.get(
+                `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/me`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            if (res.data) {
+                setUserData(res.data);
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+        }
+    };
+
     const userProfile = {
-        name: "Aditya Kumar",
-        rollNo: "22EC10001",
-        roomNo: "B-204",
-        department: "Electronics & Electrical Communication",
-        email: "aditya.kumar@example.com",
-        phone: "+91 98765 43210",
-        bloodGroup: "B+",
-        dob: "2003-08-15"
+        name: userData?.student?.firstName 
+              ? `${userData.student.firstName} ${userData.student.lastName}`
+              : (user?.user_metadata?.full_name || user?.user_metadata?.name || "Student"),
+        rollNo: userData?.student?.rollNumber || "N/A",
+        roomNo: userData?.student?.block 
+                ? `${userData.student.block}-${userData.student.roomNumber}`
+                : "N/A",
+        department: userData?.student?.department 
+                    ? (DEPARTMENT_MAP[userData.student.department] || userData.student.department)
+                    : "N/A",
+        email: userData?.email || user?.email || "",
     };
 
     const messCardDetails = {
-        id: "PH-2024-22EC10001",
+        id: userData?.student?.rollNumber ? `PH-2024-${userData.student.rollNumber}` : "N/A",
         messOption: "Non-Vegetarian",
         extraCoupons: 5,
         status: "Active"
     };
-
-    const participationStats = [
-        { category: "Tech", count: 12, icon: <MdComputer />, color: "gold" },
-        { category: "Cultural", count: 8, icon: <MdTheaterComedy />, color: "silver" },
-        { category: "Sports", count: 15, icon: <MdSportsCricket />, color: "bronze" }
-    ];
 
     return (
         <div className="bg-ivory text-[#2d1a1a] font-display overflow-x-hidden min-h-screen flex flex-col transition-colors duration-300 pt-20">
@@ -149,43 +199,6 @@ const MemberPortal = () => {
 
                 </div>
             </section>
-
-             {/* Participation Details Section */}
-             <section className="py-12 px-4 md:px-20 lg:px-40 flex justify-center bg-[#f9f5f0] border-y border-primary/5">
-                <div className="max-w-[1200px] w-full">
-                     <div className="flex flex-col items-center mb-12">
-                        <h2 className="text-primary text-3xl font-serif font-bold tracking-tight mb-2">Participation Stats</h2>
-                        <div className="h-1 w-20 bg-gold rounded-full"></div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {participationStats.map((stat, index) => (
-                             <div key={index} className={`bg-white p-6 rounded-xl flex flex-col items-center text-center group hover:-translate-y-2 transition-all duration-300 shadow-xl border-t-4 relative ${
-                                    stat.color === 'gold' ? 'border-gold' : 
-                                    stat.color === 'silver' ? 'border-gray-400' : 
-                                    'border-[#cd7f32]'
-                                }`}>
-                                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 shadow-lg ${
-                                     stat.color === 'gold' ? 'bg-gold/10 text-gold' : 
-                                     stat.color === 'silver' ? 'bg-gray-100 text-gray-500' : 
-                                     'bg-[#cd7f32]/10 text-[#cd7f32]'
-                                }`}>
-                                    <span className="text-4xl">{stat.icon}</span>
-                                </div>
-                                <h3 className="text-primary font-serif font-bold text-xl mb-1">{stat.category}</h3>
-                                <p className="text-gray-500 text-xs uppercase tracking-widest mb-4">Events Participated</p>
-                                <div className={`text-4xl font-black ${
-                                     stat.color === 'gold' ? 'text-gold' : 
-                                     stat.color === 'silver' ? 'text-gray-500' : 
-                                     'text-[#cd7f32]'
-                                }`}>
-                                    {stat.count}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-             </section>
 
             {/* Action Buttons Section */}
             <section className="py-16 px-4 md:px-20 lg:px-40 flex justify-center bg-white">

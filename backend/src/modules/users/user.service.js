@@ -74,7 +74,10 @@ const bulkCreateUsersService = async (users) => {
 };
 
 const getMeService = async (userId) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ 
+    where: { id: userId },
+    include: { student: true, administration: true }
+  });
   if (!user) throw new Error("User not found in database.");
   return user;
 };
