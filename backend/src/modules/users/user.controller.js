@@ -11,9 +11,11 @@ import { prisma } from "../../config/prisma.js";
 
 const getMe = async (req, res) => {
   try {
-    console.log("Authenticated user:", req.user);
+    console.log("Authenticated user inside getMe:", req.user);
 
     const user = await getMeService(req.user.id);
+
+    console.log("getMeService returned:", user.id);
 
     res.json({
       role: user.role,
@@ -22,6 +24,7 @@ const getMe = async (req, res) => {
       administration: user.administration,
     });
   } catch (err) {
+    console.error("DEBUG getMe error:", err);
     res.status(404).json({ message: err.message });
   }
 };

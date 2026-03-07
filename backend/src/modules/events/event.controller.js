@@ -66,3 +66,101 @@ export const deleteEvent = async (req, res) => {
         res.status(500).json({ message: error.message || "Failed to delete event." });
     }
 };
+
+export const getEventDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const event = await eventService.getEventById(id);
+        if (!event) {
+            return res.status(404).json({ message: "Event not found." });
+        }
+        res.status(200).json(event);
+    } catch (error) {
+        console.error("Error fetching event details:", error);
+        res.status(500).json({ message: error.message || "Failed to fetch event details." });
+    }
+};
+
+export const getEventPendingRequests = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const requests = await eventService.getEventParticipations(id, 'PENDING');
+        res.status(200).json(requests);
+    } catch (error) {
+        console.error("Error fetching pending requests:", error);
+        res.status(500).json({ message: error.message || "Failed to fetch pending requests." });
+    }
+};
+
+export const getEventApprovedParticipants = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const requests = await eventService.getEventParticipations(id, 'APPROVED');
+        res.status(200).json(requests);
+    } catch (error) {
+        console.error("Error fetching approved participants:", error);
+        res.status(500).json({ message: error.message || "Failed to fetch approved participants." });
+    }
+};
+
+export const updateParticipantStatus = async (req, res) => {
+    try {
+        const { id, participantId } = req.params;
+        const { status } = req.body;
+        
+        if (!['APPROVED', 'REJECTED'].includes(status)) {
+            return res.status(400).json({ message: "Invalid status." });
+        }
+
+        const updated = await eventService.updateParticipationStatus(id, participantId, status);
+        res.status(200).json(updated);
+    } catch (error) {
+        console.error("Error updating participant status:", error);
+        res.status(500).json({ message: error.message || "Failed to update participant status." });
+    }
+};
+
+export const addParticipant = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { rollNumber, role, year } = req.body;
+
+        if (!rollNumber) {
+            return res.status(400).json({ message: "Roll number is required." });
+        }
+
+        const added = await eventService.addEventParticipant(id, { rollNumber, role, year });
+        res.status(201).json(added);
+    } catch (error) {
+        console.error("Error adding participant:", error);
+        res.status(500).json({ message: error.message || "Failed to add participant." });
+    }
+};
+
+export const removeParticipant = async (req, res) => {
+    try {
+        const { id, participantId } = req.params;
+        await eventService.removeEventParticipant(id, participantId);
+        res.status(200).json({ message: "Participant removed successfully." });
+    } catch (error) {
+        console.error("Error removing participant:", error);
+        res.status(500).json({ message: error.message || "Failed to remove participant." });
+    }
+};
+
+export const addResult = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { year, position } = req.body;
+
+        if (!year || !position) {
+            return res.status(400).json({ message: "Year and position are required." });
+        }
+
+        const result = await eventService.addEventResult(id, { year, position });
+        res.status(201).json(result);
+    } catch (error) {
+        console.error("Error adding event result:", error);
+        res.status(500).json({ message: error.message || "Failed to add event result." });
+    }
+};

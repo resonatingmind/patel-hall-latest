@@ -78,7 +78,10 @@ const getMeService = async (userId) => {
     where: { id: userId },
     include: { student: true, administration: true }
   });
-  if (!user) throw new Error("User not found in database.");
+  if (!user) {
+    console.error(`DEBUG: User with id ${userId} not found in database.`);
+    throw new Error("User not found in database.");
+  }
   return user;
 };
 

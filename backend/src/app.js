@@ -20,7 +20,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/council", councilRoutes);
 app.use("/api/alumni", alumniRoutes);
-app.use("/api/grievance", grievanceRoutes);
+app.use("/api/grievances", grievanceRoutes);
 app.use("/api/participation", participationRoutes);
 app.use("/api/events", eventRoutes);
 

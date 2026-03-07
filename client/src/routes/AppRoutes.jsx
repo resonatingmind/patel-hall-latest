@@ -64,6 +64,7 @@ const AppRoutes = () => {
         <Route path="/portal/admin/administration" element={<AdminAdministrativeMembers />} />
         <Route path="/portal/council/manage-events" element={<CouncilManageEvents />} />
         <Route path="/portal/council/manage-events/:id" element={<CouncilEventDetails />} />
+        <Route path="/events/:id" element={<CouncilEventDetails />} />
         <Route path="/portal/council/batch" element={<CouncilBatch />} />
         <Route path="/portal/council/alumni" element={<CouncilAlumni />} />
         <Route path="/portal/council/grievance" element={<CouncilGrievance />} />
