@@ -97,7 +97,7 @@ const Batch = () => {
                                              </Link>
                                         </div>
                                         <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-serif font-black leading-tight tracking-[-0.05em] uppercase drop-shadow-lg">
-                                            BATCH 2024-25
+                                            BATCH
                                         </h1>
                                         <h2 className="text-gold text-base md:text-lg font-medium tracking-widest uppercase font-serif">
                                             Student Directory | Patel Hall

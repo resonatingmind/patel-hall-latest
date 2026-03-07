@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import QRCode from 'react-qr-code';
 import { MdReportProblem, MdListAlt, MdGroups, MdSportsCricket, MdTheaterComedy, MdComputer, MdPerson, MdEdit, MdLogout, MdSchool } from "react-icons/md";
 import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
@@ -58,6 +59,20 @@ const MemberPortal = () => {
             }
         } catch (error) {
             console.error("Error fetching user data:", error);
+        }
+    };
+
+    const getSessionYear = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth(); // 0 is January, 6 is July
+
+        if (month >= 6) {
+            // July onwards
+            return `${year}-${year + 1}`;
+        } else {
+            // Jan to June
+            return `${year - 1}-${year}`;
         }
     };
 
@@ -122,37 +137,37 @@ const MemberPortal = () => {
                 <div className="max-w-[1200px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
                     
                     {/* User Profile Card */}
-                    <div className="bg-white rounded-xl shadow-xl overflow-hidden border-t-4 border-gold group">
-                        <div className="p-6 md:p-8">
+                    <div className="bg-white rounded-xl shadow-xl overflow-hidden border-t-4 border-gold group flex flex-col h-full">
+                        <div className="p-6 md:p-8 flex-1 flex flex-col justify-center">
                              <div className="flex justify-between items-start mb-6">
                                 <h3 className="text-primary text-2xl font-serif font-bold">Personal Details</h3>
-                                <Link to="/update-profile" className="text-gray-400 hover:text-primary transition-colors">
+                                <Link to="/update-profile" className="hidden text-gray-400 hover:text-primary transition-colors">
                                     <MdEdit size={24} />
                                 </Link>
                             </div>
-                            <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/10 shadow-lg shrink-0">
+                            <div className="flex flex-col md:flex-row gap-6 items-center md:items-start flex-1">
+                                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-primary/10 shadow-lg shrink-0">
                                     <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                                        <MdPerson size={64} />
+                                        <MdPerson size={64} className="w-12 h-12 sm:w-16 sm:h-16" />
                                     </div>
                                 </div>
-                                <div className="space-y-3 w-full text-center md:text-left">
+                                <div className="space-y-3 w-full text-center md:text-left h-full flex flex-col justify-center">
                                     <div>
-                                        <p className="text-xs uppercase tracking-widest text-gray-500 font-bold">Full Name</p>
-                                        <p className="text-lg font-serif font-bold text-primary">{userProfile.name}</p>
+                                        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">Full Name</p>
+                                        <p className="text-base sm:text-lg font-serif font-bold text-primary leading-tight">{userProfile.name}</p>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-y-2 gap-x-4">
                                         <div>
-                                            <p className="text-xs uppercase tracking-widest text-gray-500 font-bold">Roll No</p>
-                                            <p className="font-medium">{userProfile.rollNo}</p>
+                                            <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">Roll No</p>
+                                            <p className="font-medium text-sm sm:text-base">{userProfile.rollNo}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs uppercase tracking-widest text-gray-500 font-bold">Room No</p>
-                                            <p className="font-medium">{userProfile.roomNo}</p>
+                                            <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">Room No</p>
+                                            <p className="font-medium text-sm sm:text-base">{userProfile.roomNo}</p>
                                         </div>
                                         <div className="col-span-2">
-                                            <p className="text-xs uppercase tracking-widest text-gray-500 font-bold">Department</p>
-                                            <p className="font-medium">{userProfile.department}</p>
+                                            <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">Department</p>
+                                            <p className="font-medium text-sm sm:text-base leading-tight">{userProfile.department}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -161,38 +176,60 @@ const MemberPortal = () => {
                     </div>
 
                     {/* Mess Card */}
-                    <div className="bg-gradient-to-br from-deep-maroon via-[#2a0f0f] to-black rounded-xl shadow-2xl overflow-hidden text-gold border border-gold/30 relative group transform hover:scale-[1.01] transition-transform duration-300">
+                    <div className="bg-gradient-to-br from-deep-maroon via-[#2a0f0f] to-black rounded-xl shadow-2xl overflow-hidden text-gold border border-gold/30 relative group transform hover:-translate-y-1 transition-transform duration-300 flex flex-col h-full">
                          {/* Card Background Pattern */}
-                         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
                          
-                         <div className="p-6 md:p-8 relative z-10 h-full flex flex-col justify-between">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                         <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center text-deep-maroon font-serif font-black text-xs">PH</div>
-                                         <span className="font-serif font-bold tracking-widest uppercase text-sm opacity-80">Patel Hall Mess</span>
+                         <div className="p-6 md:p-8 relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 flex-1">
+                            
+                            {/* Left Side: Info (Desktop) / Top & Bottom (Mobile) */}
+                            <div className="flex flex-col flex-1 text-center sm:text-left w-full h-full justify-between sm:justify-center items-center sm:items-start order-1 sm:order-1">
+                                
+                                {/* 1. Hall Info */}
+                                <div className="mb-6 sm:mb-auto mt-auto sm:mt-0 w-full">
+                                    <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-2 sm:gap-3 mb-1">
+                                         <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-gold flex items-center justify-center text-deep-maroon font-serif font-black text-sm shadow-md mb-1 sm:mb-0 shrink-0">PH</div>
+                                         <div className="flex flex-col justify-center">
+                                            <h3 className="font-serif font-bold tracking-widest uppercase text-lg sm:text-base text-white drop-shadow-sm leading-tight text-center sm:text-left">Patel Hall Mess</h3>
+                                            <p className="text-gold/70 text-xs tracking-wider uppercase font-semibold text-center sm:text-left">Session {getSessionYear()}</p>
+                                         </div>
                                     </div>
-                                    <p className="text-white/50 text-xs tracking-wider">Session 2024-2025</p>
+                                    <div className="mt-2 sm:mt-3 inline-flex justify-center sm:justify-start w-full sm:w-auto">
+                                        <span className="bg-gold/20 text-gold border border-gold/30 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm shadow-sm">{messCardDetails.status}</span>
+                                    </div>
                                 </div>
-                                <div className="text-right">
-                                    <span className="bg-gold text-deep-maroon text-xs font-black px-2 py-1 rounded uppercase tracking-wider">{messCardDetails.status}</span>
+
+                                {/* QR Code on Mobile (Rendered here for ordering, hidden on sm+) */}
+                                <div className="w-full flex justify-center sm:hidden mb-6 order-2">
+                                    <div className="bg-white p-3 rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] border-2 border-gold/30 w-48 h-48 flex items-center justify-center">
+                                        <QRCode 
+                                            value={messCardDetails.id || "N/A"} 
+                                            size={256}
+                                            style={{ height: "100%", maxWidth: "100%", width: "100%" }}
+                                            bgColor="#ffffff"
+                                            fgColor="#2a0f0f"
+                                            level="Q"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* 3. Mess ID */}
+                                <div className="mt-auto sm:mt-4 order-3 w-full">
+                                    <p className="text-white/50 text-xs uppercase tracking-widest mb-1 font-medium text-center sm:text-left">Mess ID</p>
+                                    <p className="font-mono text-xl sm:text-2xl text-gold tracking-wider font-bold drop-shadow-md break-all text-center sm:text-left">{messCardDetails.id}</p>
                                 </div>
                             </div>
 
-                            <div className="my-6">
-                                <p className="text-gold/60 text-xs uppercase tracking-widest mb-1">Mess ID</p>
-                                <p className="font-mono text-2xl text-white tracking-wider shadow-black drop-shadow-md">{messCardDetails.id}</p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-8 border-t border-gold/20 pt-4">
-                                <div>
-                                    <p className="text-gold/60 text-xs uppercase tracking-widest mb-1">Selected Mess</p>
-                                    <p className="text-white font-serif font-bold text-lg">{messCardDetails.messOption}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gold/60 text-xs uppercase tracking-widest mb-1">Extra Coupons</p>
-                                    <p className="text-white font-serif font-bold text-lg">{messCardDetails.extraCoupons}</p>
-                                </div>
+                            {/* Right Side: QR Code (Hidden on mobile, visible on sm+) */}
+                            <div className="shrink-0 bg-white p-2 md:p-3 rounded-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] border-2 border-gold/30 transform group-hover:scale-105 transition-transform duration-500 w-32 h-32 md:w-40 md:h-40 hidden sm:flex items-center justify-center order-2 sm:order-2">
+                                <QRCode 
+                                    value={messCardDetails.id || "N/A"} 
+                                    size={256}
+                                    style={{ height: "100%", maxWidth: "100%", width: "100%" }}
+                                    bgColor="#ffffff"
+                                    fgColor="#2a0f0f"
+                                    level="Q"
+                                />
                             </div>
                          </div>
                     </div>
