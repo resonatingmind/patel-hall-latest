@@ -135,7 +135,7 @@ enum ParticipationStatus {
 
 enum EventCategory {
   SPORTS
-  SOCIAL_AND_CULTURAL @map("Social and Cultural activities")
+  SOCIAL_AND_CULTURAL @map("Social and Cultural")
   TECHNOLOGY          @map("Technology")
   HALL_AFFAIRS        @map("Hall affairs")
 }
@@ -144,9 +144,29 @@ model Event {
   id        String   @id @default(uuid())
   name      String   @unique
   category  EventCategory
+
   logs      ParticipationLog[]
+  results   EventResult[]
 
   createdAt DateTime @default(now())
+}
+
+model EventResult {
+  id       String @id @default(uuid())
+
+  eventId  String
+  year     Int
+  position Int
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum ParticipationRole {
+  MEMBER
+  CAPTAIN
+  VICE_CAPTAIN
 }
 
 model ParticipationLog {
@@ -154,10 +174,9 @@ model ParticipationLog {
 
   studentId String
   eventId   String
-  event     Event    @relation(fields: [eventId], references: [id])
-  role      String?
-  category  String?
-  year      String?
+
+  role      ParticipationRole?
+  year      Int?
   proof     String?
 
   status    ParticipationStatus @default(PENDING)
@@ -166,6 +185,9 @@ model ParticipationLog {
   updatedAt DateTime @updatedAt
 
   student   Student @relation(fields: [studentId], references: [id])
+  event     Event   @relation(fields: [eventId], references: [id])
+
+  @@unique([studentId, eventId])
 }
 
 model Alumni {
