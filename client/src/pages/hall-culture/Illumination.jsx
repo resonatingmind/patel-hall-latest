@@ -83,7 +83,7 @@ const Illumination = () => {
 </section>
 
              {/* Overall Standings */}
-             <section className="py-12 md:py-24 px-4 md:px-10 bg-ivory">
+             <section className="hidden py-12 md:py-24 px-4 md:px-10 bg-ivory">
                 <div className="max-w-[1000px] mx-auto">
                     <div className="flex flex-col items-center text-center mb-16">
                         <span className="text-primary/60 font-bold tracking-[0.3em] uppercase text-[10px] mb-4">Competition History</span>
@@ -132,7 +132,7 @@ const Illumination = () => {
              </section>
 
              {/* Leadership Section */}
-             <section className="py-12 md:py-24 bg-[#f9f5f0] border-y border-primary/5">
+             <section className="hidden py-12 md:py-24 bg-[#f9f5f0] border-y border-primary/5">
                 <div className="max-w-[1200px] mx-auto px-4 md:px-10">
                      <div className="text-center mb-16">
                         <span className="text-primary/60 font-bold tracking-[0.3em] uppercase text-[10px] mb-4">Leadership</span>
