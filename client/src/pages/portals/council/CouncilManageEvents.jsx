@@ -10,6 +10,7 @@ import {
   MdWarning,
   MdEmojiEvents,
   MdSave,
+  MdGroups,
 } from "react-icons/md";
 import axios from "axios";
 import { supabase } from "../../../lib/supabaseClient";
@@ -59,6 +60,23 @@ const CouncilManageEvents = () => {
   });
   const [editingStandingId, setEditingStandingId] = useState(null);
   const [standingActionLoading, setStandingActionLoading] = useState(false);
+
+  // Leadership modal state
+  const [showLeadershipModal, setShowLeadershipModal] = useState(false);
+  const [leadershipCategory, setLeadershipCategory] = useState(null);
+  const [leadershipMembers, setLeadershipMembers] = useState([]);
+  const [leadershipLoading, setLeadershipLoading] = useState(false);
+  const [leadershipError, setLeadershipError] = useState("");
+  const [leadershipForm, setLeadershipForm] = useState({
+    rollNumber: "",
+    role: "",
+    year: "",
+  });
+  const [editingLeadershipId, setEditingLeadershipId] = useState(null);
+  const [leadershipActionLoading, setLeadershipActionLoading] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
   // Get auth token
   const getToken = async () => {
@@ -178,6 +196,137 @@ const CouncilManageEvents = () => {
   const cancelEditStanding = () => {
     setEditingStandingId(null);
     setStandingForm({ year: "", position: "", totalPoints: "" });
+  };
+
+  // ── Leadership Team handlers ──
+
+  const openLeadershipModal = async (category) => {
+    setLeadershipCategory(category);
+    setShowLeadershipModal(true);
+    setLeadershipError("");
+    setLeadershipForm({ rollNumber: "", role: "", year: "" });
+    setEditingLeadershipId(null);
+    setStudentSearch("");
+    setShowStudentDropdown(false);
+    await Promise.all([fetchLeadership(category.value), fetchStudents()]);
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const token = await getToken();
+      const response = await axios.get(`${API_BASE_URL}/api/students`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setStudents(response.data);
+    } catch (err) {
+      console.error("Error fetching students:", err);
+    }
+  };
+
+  const filteredStudents = students.filter((s) => {
+    const query = studentSearch.toLowerCase();
+    return (
+      s.firstName.toLowerCase().includes(query) ||
+      s.lastName.toLowerCase().includes(query) ||
+      s.rollNumber.toLowerCase().includes(query)
+    );
+  });
+
+  const selectStudent = (student) => {
+    setLeadershipForm({ ...leadershipForm, rollNumber: student.rollNumber });
+    setStudentSearch(
+      `${student.firstName} ${student.lastName} (${student.rollNumber})`,
+    );
+    setShowStudentDropdown(false);
+  };
+
+  const fetchLeadership = async (categoryValue) => {
+    try {
+      setLeadershipLoading(true);
+      const response = await axios.get(
+        `${API_BASE_URL}/api/events/category/${categoryValue}/leadership`,
+      );
+      setLeadershipMembers(response.data);
+      setLeadershipError("");
+    } catch (err) {
+      console.error("Error fetching leadership:", err);
+      setLeadershipError("Failed to load leadership team.");
+    } finally {
+      setLeadershipLoading(false);
+    }
+  };
+
+  const handleLeadershipSubmit = async (e) => {
+    e.preventDefault();
+    if (!leadershipForm.rollNumber) {
+      setLeadershipError("Please select a student from the dropdown.");
+      return;
+    }
+    try {
+      setLeadershipActionLoading(true);
+      setLeadershipError("");
+      const token = await getToken();
+      await axios.post(
+        `${API_BASE_URL}/api/events/category/${leadershipCategory.value}/leadership`,
+        {
+          rollNumber: leadershipForm.rollNumber,
+          role: leadershipForm.role,
+          year: parseInt(leadershipForm.year, 10),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setLeadershipForm({ rollNumber: "", role: "", year: "" });
+      setStudentSearch("");
+      setShowStudentDropdown(false);
+      setEditingLeadershipId(null);
+      await fetchLeadership(leadershipCategory.value);
+    } catch (err) {
+      setLeadershipError(
+        err.response?.data?.message || "Failed to save leadership member.",
+      );
+    } finally {
+      setLeadershipActionLoading(false);
+    }
+  };
+
+  const handleDeleteLeadership = async (memberId) => {
+    try {
+      setLeadershipActionLoading(true);
+      setLeadershipError("");
+      const token = await getToken();
+      await axios.delete(`${API_BASE_URL}/api/events/leadership/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await fetchLeadership(leadershipCategory.value);
+    } catch (err) {
+      setLeadershipError(
+        err.response?.data?.message || "Failed to delete leadership member.",
+      );
+    } finally {
+      setLeadershipActionLoading(false);
+    }
+  };
+
+  const startEditLeadership = (member) => {
+    setEditingLeadershipId(member.id);
+    setLeadershipForm({
+      rollNumber: member.student.rollNumber,
+      role: member.role,
+      year: member.year.toString(),
+    });
+    setStudentSearch(
+      `${member.student.firstName} ${member.student.lastName} (${member.student.rollNumber})`,
+    );
+    setShowStudentDropdown(false);
+  };
+
+  const cancelEditLeadership = () => {
+    setEditingLeadershipId(null);
+    setLeadershipForm({ rollNumber: "", role: "", year: "" });
+    setStudentSearch("");
+    setShowStudentDropdown(false);
   };
 
   const handleCreateSubmit = async (e) => {
@@ -389,12 +538,28 @@ const CouncilManageEvents = () => {
                         <span className="bg-primary/10 text-primary text-sm py-1 px-3 rounded-full font-bold">
                           {groupedEvents[category.value].length}
                         </span>
-                        <button
-                          onClick={() => openStandingsModal(category)}
-                          className="cursor-pointer ml-auto px-4 py-2 bg-gold/10 text-gold hover:bg-gold hover:text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 border border-gold/30"
-                        >
-                          <MdEmojiEvents size={18} /> Year Wise Standing
-                        </button>
+                        <div className="ml-auto flex items-center gap-2">
+                          <button
+                            onClick={() => openStandingsModal(category)}
+                            className="cursor-pointer px-2 sm:px-4 py-2 bg-gold/10 text-gold hover:bg-gold hover:text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 border border-gold/30"
+                            title="Year Wise Standing"
+                          >
+                            <MdEmojiEvents size={18} />
+                            <span className="hidden sm:inline">
+                              Year Wise Standing
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => openLeadershipModal(category)}
+                            className="cursor-pointer px-2 sm:px-4 py-2 bg-primary/10 text-primary hover:bg-primary hover:text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 border border-primary/30"
+                            title="Leadership Team"
+                          >
+                            <MdGroups size={18} />
+                            <span className="hidden sm:inline">
+                              Leadership Team
+                            </span>
+                          </button>
+                        </div>
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -779,6 +944,245 @@ const CouncilManageEvents = () => {
                               <button
                                 onClick={() => handleDeleteStanding(s.id)}
                                 disabled={standingActionLoading}
+                                className="cursor-pointer p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Delete"
+                              >
+                                <MdDelete size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leadership Team Modal */}
+      {showLeadershipModal && leadershipCategory && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+              <h3 className="text-xl font-bold font-serif text-primary flex items-center gap-2">
+                <MdGroups className="text-primary" /> {leadershipCategory.label}{" "}
+                — Leadership Team
+              </h3>
+              <button
+                onClick={() => setShowLeadershipModal(false)}
+                className="text-gray-400 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-full hover:bg-gray-200"
+              >
+                <MdClose size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex flex-col gap-6">
+              {leadershipError && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200 flex items-center gap-2">
+                  <MdWarning className="flex-shrink-0" />
+                  <span>{leadershipError}</span>
+                </div>
+              )}
+
+              {/* Add / Edit Form */}
+              <form
+                onSubmit={handleLeadershipSubmit}
+                className="bg-gray-50 p-4 rounded-xl border border-gray-200"
+              >
+                <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  {editingLeadershipId ? (
+                    <>
+                      <MdEdit className="text-blue-500" /> Edit Member
+                    </>
+                  ) : (
+                    <>
+                      <MdAdd className="text-green-600" /> Add New Member
+                    </>
+                  )}
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="relative">
+                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                      Student *
+                    </label>
+                    <input
+                      type="text"
+                      value={studentSearch}
+                      onChange={(e) => {
+                        setStudentSearch(e.target.value);
+                        setShowStudentDropdown(true);
+                        if (!e.target.value) {
+                          setLeadershipForm({
+                            ...leadershipForm,
+                            rollNumber: "",
+                          });
+                        }
+                      }}
+                      onFocus={() =>
+                        !editingLeadershipId && setShowStudentDropdown(true)
+                      }
+                      onBlur={() =>
+                        setTimeout(() => setShowStudentDropdown(false), 200)
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold outline-none text-sm"
+                      placeholder="Search by name or roll no."
+                      disabled={!!editingLeadershipId}
+                    />
+                    <input type="hidden" value={leadershipForm.rollNumber} />
+                    {showStudentDropdown && !editingLeadershipId && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {filteredStudents.length === 0 ? (
+                          <div className="px-3 py-2 text-xs text-gray-400">
+                            No students found.
+                          </div>
+                        ) : (
+                          filteredStudents.slice(0, 50).map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => selectStudent(s)}
+                              className="w-full text-left px-3 py-2 hover:bg-gold/10 transition-colors text-sm flex justify-between items-center gap-2 cursor-pointer"
+                            >
+                              <span className="font-medium text-gray-800 truncate">
+                                {s.firstName} {s.lastName}
+                              </span>
+                              <span className="text-xs text-gray-400 flex-shrink-0">
+                                {s.rollNumber}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                      Role *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={leadershipForm.role}
+                      onChange={(e) =>
+                        setLeadershipForm({
+                          ...leadershipForm,
+                          role: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold outline-none text-sm"
+                      placeholder="e.g. Secretary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                      Year *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={leadershipForm.year}
+                      onChange={(e) =>
+                        setLeadershipForm({
+                          ...leadershipForm,
+                          year: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold outline-none text-sm"
+                      placeholder="e.g. 2025"
+                      disabled={!!editingLeadershipId}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3 justify-end">
+                  {editingLeadershipId && (
+                    <button
+                      type="button"
+                      onClick={cancelEditLeadership}
+                      className="cursor-pointer px-4 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors font-bold"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={leadershipActionLoading}
+                    className="cursor-pointer px-5 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-gold transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                  >
+                    {leadershipActionLoading && (
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                    )}
+                    <MdSave size={16} />
+                    {editingLeadershipId ? "Update" : "Save"}
+                  </button>
+                </div>
+              </form>
+
+              {/* Leadership List */}
+              {leadershipLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                </div>
+              ) : leadershipMembers.length === 0 ? (
+                <div className="text-center py-10 text-gray-400">
+                  <MdGroups size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No leadership members yet.</p>
+                  <p className="text-sm mt-1">Use the form above to add one.</p>
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="text-left px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">
+                          Name
+                        </th>
+                        <th className="text-left px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">
+                          Roll No.
+                        </th>
+                        <th className="text-left px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">
+                          Role
+                        </th>
+                        <th className="text-left px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">
+                          Year
+                        </th>
+                        <th className="text-right px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leadershipMembers.map((m) => (
+                        <tr
+                          key={m.id}
+                          className="border-b border-gray-100 last:border-0 hover:bg-gold/5 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-bold text-gray-800">
+                            {m.student.firstName} {m.student.lastName}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 font-medium">
+                            {m.student.rollNumber}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 font-medium">
+                            {m.role}
+                          </td>
+                          <td className="px-4 py-3 font-bold text-gray-800">
+                            {m.year}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex gap-1 justify-end">
+                              <button
+                                onClick={() => startEditLeadership(m)}
+                                className="cursor-pointer p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit"
+                              >
+                                <MdEdit size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLeadership(m.id)}
+                                disabled={leadershipActionLoading}
                                 className="cursor-pointer p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                 title="Delete"
                               >

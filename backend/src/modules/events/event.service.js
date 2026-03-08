@@ -270,3 +270,72 @@ export const deleteOverallStanding = async (id) => {
     where: { id },
   });
 };
+
+// ── Leadership Team ──
+
+export const getLeadershipByCategory = async (category) => {
+  return await prisma.leadershipTeam.findMany({
+    where: { category },
+    include: {
+      student: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          rollNumber: true,
+          image: true,
+          linkedin: true,
+        },
+      },
+    },
+    orderBy: { year: "desc" },
+  });
+};
+
+export const upsertLeadershipMember = async (data) => {
+  const year = parseInt(data.year, 10);
+  const { category, role, rollNumber } = data;
+
+  // Look up student by roll number
+  const student = await prisma.student.findUnique({
+    where: { rollNumber },
+  });
+  if (!student) {
+    throw new Error(`Student with roll number "${rollNumber}" not found.`);
+  }
+
+  return await prisma.leadershipTeam.upsert({
+    where: {
+      studentId_category_year: {
+        studentId: student.id,
+        category,
+        year,
+      },
+    },
+    update: { role },
+    create: {
+      studentId: student.id,
+      category,
+      role,
+      year,
+    },
+    include: {
+      student: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          rollNumber: true,
+          image: true,
+          linkedin: true,
+        },
+      },
+    },
+  });
+};
+
+export const deleteLeadershipMember = async (id) => {
+  return await prisma.leadershipTeam.delete({
+    where: { id },
+  });
+};

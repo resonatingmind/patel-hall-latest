@@ -307,3 +307,62 @@ export const deleteStanding = async (req, res) => {
       .json({ message: error.message || "Failed to delete standing." });
   }
 };
+
+// ── Leadership Team ──
+
+export const getLeadershipByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const members = await eventService.getLeadershipByCategory(category);
+    res.status(200).json(members);
+  } catch (error) {
+    console.error("Error fetching leadership by category:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Failed to fetch leadership team." });
+  }
+};
+
+export const upsertLeadershipMember = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { rollNumber, role, year } = req.body;
+
+    if (!rollNumber || !role || !year) {
+      return res
+        .status(400)
+        .json({ message: "Roll number, role, and year are required." });
+    }
+
+    const member = await eventService.upsertLeadershipMember({
+      category,
+      rollNumber,
+      role,
+      year: parseInt(year, 10),
+    });
+    res.status(200).json(member);
+  } catch (error) {
+    console.error("Error upserting leadership member:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Failed to save leadership member." });
+  }
+};
+
+export const deleteLeadershipMember = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    await eventService.deleteLeadershipMember(memberId);
+    res
+      .status(200)
+      .json({ message: "Leadership member removed successfully." });
+  } catch (error) {
+    console.error("Error deleting leadership member:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "Leadership member not found." });
+    }
+    res.status(500).json({
+      message: error.message || "Failed to delete leadership member.",
+    });
+  }
+};

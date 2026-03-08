@@ -94,6 +94,7 @@ model Student {
   positions           StudentPosition[]
   participationLogs   ParticipationLog[]
   grievances          Grievance[]
+  leadershipRoles     LeadershipTeam[]
 }
 
 model Administration {
@@ -188,6 +189,22 @@ model OverallStanding {
   updatedAt    DateTime      @updatedAt
 
   @@unique([year, category]) // One standing record per category per year
+}
+
+model LeadershipTeam {
+  id         String        @id @default(uuid())
+  studentId  String
+  student    Student       @relation(fields: [studentId], references: [id])
+
+  category   EventCategory
+  
+  role       String        
+  year       Int
+
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([studentId, category, year])
 }
 
 enum ParticipationRole {

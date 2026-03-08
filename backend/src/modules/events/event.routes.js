@@ -11,6 +11,10 @@ router.get(
   "/category/:category/standings",
   eventController.getStandingsByCategory,
 );
+router.get(
+  "/category/:category/leadership",
+  eventController.getLeadershipByCategory,
+);
 
 // Fetch events (Students to log participation, Council to manage)
 router.get(
@@ -108,6 +112,20 @@ router.delete(
   authenticate,
   authorize("COUNCIL", "ADMIN"),
   eventController.deleteStanding,
+);
+
+// Leadership Team management (Council/Admin)
+router.post(
+  "/category/:category/leadership",
+  authenticate,
+  authorize("COUNCIL", "ADMIN"),
+  eventController.upsertLeadershipMember,
+);
+router.delete(
+  "/leadership/:memberId",
+  authenticate,
+  authorize("COUNCIL", "ADMIN"),
+  eventController.deleteLeadershipMember,
 );
 
 export default router;
