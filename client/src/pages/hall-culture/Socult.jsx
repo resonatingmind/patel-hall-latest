@@ -141,6 +141,38 @@ const Socult = () => {
     },
   ];
 
+  const [leadershipTeam, setLeadershipTeam] = useState([]);
+  const [leadershipLoading, setLeadershipLoading] = useState(true);
+
+  const DEFAULT_AVATAR =
+    "https://upload.wikimedia.org/wikipedia/commons/2/2c/Default_pfp.svg";
+
+  useEffect(() => {
+    const fetchLeadership = async () => {
+      try {
+        setLeadershipLoading(true);
+        const res = await fetch(
+          `${API_BASE}/api/events/category/SOCIAL_AND_CULTURAL/leadership`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch leadership team");
+        const data = await res.json();
+        const mapped = data.map((m) => ({
+          name: `${m.student.firstName} ${m.student.lastName}`,
+          role: m.role,
+          image: m.student.image || DEFAULT_AVATAR,
+          email: m.student.user?.email || "",
+          linkedin: m.student.linkedin || "",
+        }));
+        setLeadershipTeam(mapped);
+      } catch (err) {
+        console.error("Error fetching leadership team:", err);
+      } finally {
+        setLeadershipLoading(false);
+      }
+    };
+    fetchLeadership();
+  }, []);
+
   const galleryImages = [
     "https://lh3.googleusercontent.com/aida-public/AB6AXuAoV9tCF3C4I5x53h6sD6w_7c0A2B1kE5G5H0I9J6KcL3M7N4O1P8Q2R5S3T0U7V4W9X8Y2Z1A7B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7",
     "https://lh3.googleusercontent.com/aida-public/AB6AXuAoV9tCF3C4I5x53h6sD6w_7c0A2B1kE5G5H0I9J6KcL3M7N4O1P8Q2R5S3T0U7V4W9X8Y2Z1A7B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7",
@@ -382,167 +414,70 @@ const Socult = () => {
             </h2>
             <div className="h-1 w-20 bg-gold rounded-full"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Member 1 */}
-            <div className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg">
-              <div className="aspect-[4/5] relative overflow-hidden">
-                <img
-                  alt="Socult Secretary"
-                  className="w-full h-full object-cover transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlL96oUy_Crpfs2JzDdA0Tg3QApTyAVU7tmT56IK2QZIKDmUK7Fg6cNs2nbMIpynQg6fPedMQLuc4HzT3gZm6xKGrMcaiDkgUDVvf1ceFZr2lggvj_rEOOrxdWijR59JyMkdU9-v2tdrHnUxq0lCYes0XKyGsb2OdGv7NelM2UayJ4QlqMCpwwpx5mpq2PqMdBCIvvE8U1Jchj5ryD6zZgQGklecxnDQwhgC3nAeDoB_IP-ti5veRU4sxVR-VzsQYwEPFa0tJ1f0g"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4">
-                  <span className="bg-gold text-deep-maroon text-[10px] font-black px-2 py-0.5 rounded tracking-widest uppercase">
-                    Socult Secretary
-                  </span>
-                </div>
-              </div>
-              <div className="p-5 flex flex-col items-center text-center grow">
-                <h4 className="text-primary font-serif font-bold text-lg mb-1">
-                  Priya Das
-                </h4>
-                <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
-                  Overall Cultural Head
-                </p>
-                <div className="flex gap-4 mt-auto">
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="mailto:priya@example.com"
-                  >
-                    <MdEmail className="scale-115" />
-                  </a>
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="https://linkedin.com/in/priya"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <FaLinkedin />
-                  </a>
-                </div>
-              </div>
+          {leadershipLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
-
-            {/* Member 2 */}
-            <div className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg">
-              <div className="aspect-[4/5] relative overflow-hidden">
-                <img
-                  alt="Socult Secretary"
-                  className="w-full h-full object-cover transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdNuyWO-pytQXzGPEAHpos7ZvqGwSC-Hrv1Eq9qwpiWAVUUcSHgueEH1zhkC7Y-xJv5keuhuaA1yfrjZECQkxJqfU0gmQclxXj6dQivGUUwCWcTCT-F6ZBllOkt-GKPGyn1RQIGt56jzSR8ZPA54vV7xA9tVeUgE2qTvgx1fKZuNssN2nV9I478YgxDuwoGE2YzhAc3lbxmFdDZzp30-LjyHrgrzEh9dPMILTjGEfO_EsKwFZl7NQ3OzT2c9D_drsOMMRaFe7zIZw"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4">
-                  <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded tracking-widest uppercase">
-                    Second Socult Secy
-                  </span>
-                </div>
-              </div>
-              <div className="p-5 flex flex-col items-center text-center grow">
-                <h4 className="text-primary font-serif font-bold text-lg mb-1">
-                  Rahul Sharma
-                </h4>
-                <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
-                  Cultural Events
-                </p>
-                <div className="flex gap-4 mt-auto">
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="mailto:rahul@example.com"
-                  >
-                    <MdEmail className="scale-115" />
-                  </a>
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="https://linkedin.com/in/rahul"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <FaLinkedin />
-                  </a>
-                </div>
-              </div>
+          ) : leadershipTeam.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <span className="material-symbols-outlined text-5xl mb-4 block">
+                group
+              </span>
+              <p className="text-lg font-medium">
+                No leadership members found.
+              </p>
             </div>
-
-            {/* Member 3 */}
-            <div className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg">
-              <div className="aspect-[4/5] relative overflow-hidden">
-                <img
-                  alt="Captain"
-                  className="w-full h-full object-cover transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYunzI8N-rMvKgHtKONbqIzzVo_F_1ude-n-BEQxhMdOU-9VMvyGNXkAp91afkstFo50ecP6mH50fg5xuDfsM9lcA6XCGIJQtdViFx5gWrloxY_RffKybhZA41sBd-JTZHV_K2AvSFAAGdCgZzjOUXjfV18SxsQ_5u2khEjOK1KrCNQlqNQyHLilRwU9rEIq1HOum2TSN4hGwE_i1A8UEtbwvvx-pC9AohMED132oymeJtZUBQhTibp894HDmiJDf7fETxH51lE1Q"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4">
-                  <span className="bg-primary/80 text-white text-[10px] font-black px-2 py-0.5 rounded tracking-widest uppercase">
-                    Captain
-                  </span>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {leadershipTeam.map((member, index) => (
+                <div
+                  key={index}
+                  className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg"
+                >
+                  <div className="aspect-[4/5] relative overflow-hidden bg-gray-100">
+                    <img
+                      alt={member.name}
+                      className="w-full h-full object-cover transition-all duration-500"
+                      src={member.image}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = DEFAULT_AVATAR;
+                      }}
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4"></div>
+                  </div>
+                  <div className="p-5 flex flex-col items-center text-center grow">
+                    <h4 className="text-primary font-serif font-bold text-lg mb-1">
+                      {member.name}
+                    </h4>
+                    <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
+                      {member.role}
+                    </p>
+                    <div className="flex gap-4 mt-auto">
+                      {member.email && (
+                        <a
+                          className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
+                          href={`mailto:${member.email}`}
+                        >
+                          <MdEmail className="scale-115" />
+                        </a>
+                      )}
+                      {member.linkedin && (
+                        <a
+                          className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
+                          href={member.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaLinkedin />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 flex flex-col items-center text-center grow">
-                <h4 className="text-primary font-serif font-bold text-lg mb-1">
-                  Aditi Rao
-                </h4>
-                <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
-                  Dramatics Captain
-                </p>
-                <div className="flex gap-4 mt-auto">
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="mailto:aditi@example.com"
-                  >
-                    <MdEmail className="scale-115" />
-                  </a>
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="https://linkedin.com/in/aditi"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <FaLinkedin />
-                  </a>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Member 4 */}
-            <div className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg">
-              <div className="aspect-[4/5] relative overflow-hidden">
-                <img
-                  alt="Captain"
-                  className="w-full h-full object-cover transition-all duration-500"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuClg48JXcP2c7XhzsySrWwredAzoaZa2v-42xQH2HtczWR_E2P5T_aJ2-XNq4-aojVMny2B8OkhNVEcGqAN9q5QEYoICdO9xqfahAbZBf53WSlFXg8ANwUQSb3niAr1oVMmfDaxoqLOhFazMHRJk40IluOMYWI3NqLIMR22T6rcXmpGpVr0sasXGNeuk8r8l8vmnGIBox1DyV03T6l3OqzOLRiH7lN0mmJ79sL5dImKezgZHo6paaW0DJ6UFUcSSMnG0S2slQmoLY0"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4">
-                  <span className="bg-primary/80 text-white text-[10px] font-black px-2 py-0.5 rounded tracking-widest uppercase">
-                    Captain
-                  </span>
-                </div>
-              </div>
-              <div className="p-5 flex flex-col items-center text-center grow">
-                <h4 className="text-primary font-serif font-bold text-lg mb-1">
-                  Sneha Reddy
-                </h4>
-                <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
-                  Dance Captain
-                </p>
-                <div className="flex gap-4 mt-auto">
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="mailto:sneha@example.com"
-                  >
-                    <MdEmail className="scale-115" />
-                  </a>
-                  <a
-                    className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                    href="https://linkedin.com/in/sneha"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <FaLinkedin />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
