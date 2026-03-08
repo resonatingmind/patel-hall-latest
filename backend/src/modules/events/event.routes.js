@@ -18,9 +18,11 @@ router.get('/:id', authenticate, authorize("STUDENT", "COUNCIL", "ADMIN"), event
 router.get('/:id/pending', authenticate, authorize("COUNCIL", "ADMIN"), eventController.getEventPendingRequests);
 router.get('/:id/approved', authenticate, authorize("COUNCIL", "ADMIN"), eventController.getEventApprovedParticipants);
 router.patch('/:id/participants/:participantId', authenticate, authorize("COUNCIL", "ADMIN"), eventController.updateParticipantStatus);
+router.put('/:id/participants/:participantId/role', authenticate, authorize("COUNCIL", "ADMIN"), eventController.updateParticipantRole);
 router.post('/:id/participants', authenticate, authorize("COUNCIL", "ADMIN"), eventController.addParticipant);
 router.delete('/:id/participants/:participantId', authenticate, authorize("COUNCIL", "ADMIN"), eventController.removeParticipant);
 router.post('/:id/results', authenticate, authorize("COUNCIL", "ADMIN"), eventController.addResult);
+router.delete('/:id/results/:resultId', authenticate, authorize("COUNCIL", "ADMIN"), eventController.deleteResult);
 
 export default router;
 

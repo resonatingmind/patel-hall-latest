@@ -46,8 +46,7 @@ export const createParticipation = async (userId, data) => {
         data: {
             eventId: data.eventId,
             role: data.role,
-            category: data.category || null,
-            year: data.year || null,
+            year: data.year ? parseInt(data.year, 10) : null,
             proof: data.proof || null,
             studentId: student.id
         },

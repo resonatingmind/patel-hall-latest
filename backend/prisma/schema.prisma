@@ -157,16 +157,20 @@ model EventResult {
   eventId  String
   year     Int
   position Int
+  caption  String?
 
   event Event @relation(fields: [eventId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@unique([eventId, year])
 }
 
 enum ParticipationRole {
   MEMBER
   CAPTAIN
   VICE_CAPTAIN
+  COORDINATOR
 }
 
 model ParticipationLog {

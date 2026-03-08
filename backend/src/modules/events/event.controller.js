@@ -120,6 +120,23 @@ export const updateParticipantStatus = async (req, res) => {
     }
 };
 
+export const updateParticipantRole = async (req, res) => {
+    try {
+        const { id, participantId } = req.params;
+        const { role } = req.body;
+        
+        if (!['MEMBER', 'CAPTAIN', 'VICE_CAPTAIN', 'COORDINATOR'].includes(role)) {
+            return res.status(400).json({ message: "Invalid role." });
+        }
+
+        const updated = await eventService.updateParticipationRole(id, participantId, role);
+        res.status(200).json(updated);
+    } catch (error) {
+        console.error("Error updating participant role:", error);
+        res.status(500).json({ message: error.message || "Failed to update participant role." });
+    }
+};
+
 export const addParticipant = async (req, res) => {
     try {
         const { id } = req.params;
@@ -151,16 +168,27 @@ export const removeParticipant = async (req, res) => {
 export const addResult = async (req, res) => {
     try {
         const { id } = req.params;
-        const { year, position } = req.body;
+        const { year, position, caption } = req.body;
 
         if (!year || !position) {
             return res.status(400).json({ message: "Year and position are required." });
         }
 
-        const result = await eventService.addEventResult(id, { year, position });
+        const result = await eventService.addEventResult(id, { year, position, caption });
         res.status(201).json(result);
     } catch (error) {
         console.error("Error adding event result:", error);
         res.status(500).json({ message: error.message || "Failed to add event result." });
+    }
+};
+
+export const deleteResult = async (req, res) => {
+    try {
+        const { id, resultId } = req.params;
+        await eventService.deleteEventResult(id, resultId);
+        res.status(200).json({ message: "Result deleted successfully." });
+    } catch (error) {
+        console.error("Error deleting event result:", error);
+        res.status(500).json({ message: error.message || "Failed to delete event result." });
     }
 };

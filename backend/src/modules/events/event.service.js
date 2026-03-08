@@ -84,6 +84,21 @@ export const updateParticipationStatus = async (eventId, logId, status) => {
     });
 };
 
+export const updateParticipationRole = async (eventId, logId, role) => {
+    // Verify participation belongs to the event
+    const participation = await prisma.participationLog.findUnique({
+        where: { id: logId }
+    });
+    if (!participation || participation.eventId !== eventId) {
+        throw new Error('Participation record not found for this event.');
+    }
+
+    return await prisma.participationLog.update({
+        where: { id: logId },
+        data: { role },
+    });
+};
+
 export const addEventParticipant = async (eventId, data) => {
     // Check if student exists
     const student = await prisma.student.findUnique({
@@ -144,13 +159,38 @@ export const removeEventParticipant = async (eventId, logId) => {
 };
 
 export const addEventResult = async (eventId, data) => {
-    // Check if result for this year and position already exists (optional logic, but schema allows multiple?)
-    // Let's just create it directly
-    return await prisma.eventResult.create({
-        data: {
-            eventId,
-            year: parseInt(data.year, 10),
-            position: parseInt(data.position, 10),
+    const year = parseInt(data.year, 10);
+    const position = parseInt(data.position, 10);
+    
+    return await prisma.eventResult.upsert({
+        where: {
+            eventId_year: {
+                eventId,
+                year,
+            }
         },
+        update: {
+            position,
+            caption: data.caption,
+        },
+        create: {
+            eventId,
+            year,
+            position,
+            caption: data.caption,
+        },
+    });
+};
+
+export const deleteEventResult = async (eventId, resultId) => {
+    const result = await prisma.eventResult.findUnique({
+        where: { id: resultId }
+    });
+    if (!result || result.eventId !== eventId) {
+        throw new Error('Result record not found for this event.');
+    }
+
+    return await prisma.eventResult.delete({
+        where: { id: resultId }
     });
 };
