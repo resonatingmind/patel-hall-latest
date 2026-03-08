@@ -239,3 +239,34 @@ export const getOverallStandingsByCategory = async (category) => {
     orderBy: { year: "desc" },
   });
 };
+
+export const upsertOverallStanding = async (data) => {
+  const year = parseInt(data.year, 10);
+  const position = parseInt(data.position, 10);
+  const totalPoints = data.totalPoints ? parseFloat(data.totalPoints) : 0;
+
+  return await prisma.overallStanding.upsert({
+    where: {
+      year_category: {
+        year,
+        category: data.category,
+      },
+    },
+    update: {
+      position,
+      totalPoints,
+    },
+    create: {
+      year,
+      category: data.category,
+      position,
+      totalPoints,
+    },
+  });
+};
+
+export const deleteOverallStanding = async (id) => {
+  return await prisma.overallStanding.delete({
+    where: { id },
+  });
+};

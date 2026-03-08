@@ -96,4 +96,18 @@ router.delete(
   eventController.deleteResult,
 );
 
+// Overall Standings management (Council/Admin)
+router.post(
+  "/category/:category/standings",
+  authenticate,
+  authorize("COUNCIL", "ADMIN"),
+  eventController.upsertStanding,
+);
+router.delete(
+  "/standings/:standingId",
+  authenticate,
+  authorize("COUNCIL", "ADMIN"),
+  eventController.deleteStanding,
+);
+
 export default router;

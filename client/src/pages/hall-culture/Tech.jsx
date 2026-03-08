@@ -2,13 +2,89 @@ import React, { useEffect, useState, useRef } from "react";
 import { FaLinkedin } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const getPositionLabel = (position) => {
+  switch (position) {
+    case 1: return { medal: "Gold", place: "1ST PLACE", type: "gold" };
+    case 2: return { medal: "Silver", place: "2ND PLACE", type: "silver" };
+    case 3: return { medal: "Bronze", place: "3RD PLACE", type: "bronze" };
+    default: return { medal: `#${position}`, place: `${position}TH PLACE`, type: "bronze" };
+  }
+};
+
+const getOrdinal = (n) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
 const Tech = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const [activeSession, setActiveSession] = useState("2024-25");
+  const [activeYear, setActiveYear] = useState(null);
+  const [achievementsData, setAchievementsData] = useState({});
+  const [standings, setStandings] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const galleryRef = useRef(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [resultsRes, standingsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/events/category/TECHNOLOGY/results`),
+          fetch(`${API_BASE}/api/events/category/TECHNOLOGY/standings`),
+        ]);
+
+        if (!resultsRes.ok || !standingsRes.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        const resultsData = await resultsRes.json();
+        const standingsData = await standingsRes.json();
+
+        // Build achievements keyed by year
+        const achievements = {};
+        for (const [year, results] of Object.entries(resultsData)) {
+          achievements[year] = {
+            cards: results.map((r) => ({
+              title: r.eventName,
+              caption: r.caption,
+              ...getPositionLabel(r.position),
+            })),
+          };
+        }
+        setAchievementsData(achievements);
+
+        // Build standings keyed by year
+        const standingsMap = {};
+        for (const s of standingsData) {
+          standingsMap[s.year] = {
+            position: s.position,
+            totalPoints: s.totalPoints,
+          };
+        }
+        setStandings(standingsMap);
+
+        // Set active year to the most recent
+        const years = Object.keys(achievements).sort((a, b) => b - a);
+        if (years.length > 0) {
+          setActiveYear(years[0]);
+        }
+      } catch (err) {
+        console.error("Error fetching tech data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const scrollGallery = (direction) => {
     if (galleryRef.current) {
@@ -22,69 +98,8 @@ const Tech = () => {
     }
   };
 
-  const achievementsData = {
-    "2024-25": {
-      overall: "Fourth",
-      cards: [
-        {
-          cup: "Knowledge",
-          title: "Maths Olympiad",
-          medal: "Gold",
-          place: "1ST PLACE",
-          type: "gold",
-        },
-        {
-          cup: "Innovation",
-          title: "Hardware Modelling",
-          medal: "Silver",
-          place: "2ND PLACE",
-          type: "silver",
-        },
-        {
-          cup: "Strategy",
-          title: "Product Management",
-          medal: "Gold",
-          place: "1ST PLACE",
-          type: "gold",
-        },
-      ],
-    },
-    "2023-24": {
-      overall: "RUNNERS UP",
-      cards: [
-        {
-          cup: "Knowledge",
-          title: "Maths Olympiad",
-          medal: "Bronze",
-          place: "3RD PLACE",
-          type: "bronze",
-        },
-        {
-          cup: "Innovation",
-          title: "Hardware Modelling",
-          medal: "Gold",
-          place: "1ST PLACE",
-          type: "gold",
-        },
-        {
-          cup: "Application",
-          title: "Open Soft",
-          medal: "Bronze",
-          place: "3RD PLACE",
-          type: "bronze",
-        },
-        {
-          cup: "Innovation",
-          title: "Ad Design",
-          medal: "Silver",
-          place: "2ND PLACE",
-          type: "silver",
-        },
-      ],
-    },
-  };
-
-  const currentData = achievementsData[activeSession];
+  const currentData = activeYear ? achievementsData[activeYear] : null;
+  const currentStanding = activeYear ? standings[activeYear] : null;
 
   const eventsData = [
     {
@@ -249,128 +264,152 @@ const Tech = () => {
             <div className="h-1.5 w-24 bg-gold rounded-full mb-6"></div>
             <p className="text-gray-600 text-center max-w-2xl font-light">
               A legacy of technical dominance in the Inter-Hall General
-              Championship. Select a session to view our performance.
+              Championship. Select a year to view our performance.
             </p>
           </div>
 
-          {/* Year Tabs */}
-          <div className="flex flex-wrap justify-center gap-3 mb-12">
-            {Object.keys(achievementsData).map((year) => (
-              <button
-                key={year}
-                onClick={() => setActiveSession(year)}
-                className={`px-6 py-3 rounded-md border border-primary/10 font-bold transition-all ${
-                  activeSession === year
-                    ? "bg-deep-maroon text-gold shadow-lg"
-                    : "bg-white text-gray-500 hover:bg-primary/5 hover:text-primary"
-                }`}
-              >
-                {year}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-12 animate-fade-in-up">
-            {/* Overall Standing Header */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-primary/10 pb-8 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/10 shrink-0">
-                  <span className="material-symbols-outlined text-primary">
-                    calendar_month
-                  </span>
-                </div>
-                <h3 className="text-2xl md:text-3xl font-serif font-bold text-primary uppercase tracking-tighter">
-                  Session {activeSession}
-                </h3>
-              </div>
-              <div className="flex items-center gap-6 bg-gradient-to-r from-deep-maroon to-primary border border-gold/40 p-1 pr-8 rounded-full shadow-xl">
-                <div className="w-14 h-14 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
-                  <span className="material-symbols-outlined text-deep-maroon text-3xl font-bold">
-                    military_tech
-                  </span>
-                </div>
-                <div>
-                  <p className="text-gold/80 text-[10px] uppercase font-black tracking-widest leading-tight">
-                    Overall Standing
-                  </p>
-                  <p className="text-white font-black text-2xl leading-none font-serif">
-                    {currentData.overall}
-                  </p>
-                </div>
-              </div>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
+          ) : error ? (
+            <div className="text-center py-20 text-red-500">
+              <p className="text-lg font-medium">Failed to load achievements.</p>
+              <p className="text-sm mt-2">{error}</p>
+            </div>
+          ) : Object.keys(achievementsData).length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <span className="material-symbols-outlined text-5xl mb-4 block">emoji_events</span>
+              <p className="text-lg font-medium">No results available yet.</p>
+            </div>
+          ) : (
+            <>
+              {/* Year Tabs */}
+              <div className="flex flex-wrap justify-center gap-3 mb-12">
+                {Object.keys(achievementsData)
+                  .sort((a, b) => b - a)
+                  .map((year) => (
+                    <button
+                      key={year}
+                      onClick={() => setActiveYear(year)}
+                      className={`px-6 py-3 rounded-md border border-primary/10 font-bold transition-all ${
+                        activeYear === year
+                          ? "bg-deep-maroon text-gold shadow-lg"
+                          : "bg-white text-gray-500 hover:bg-primary/5 hover:text-primary"
+                      }`}
+                    >
+                      {year}
+                    </button>
+                  ))}
+              </div>
 
-            {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {currentData.cards.map((card, index) => (
-                <div
-                  key={index}
-                  className={`bg-white p-6 rounded-xl flex flex-col group hover:-translate-y-2 transition-all duration-300 shadow-xl border-t-4 relative overflow-hidden ${
-                    card.type === "gold"
-                      ? "border-gold"
-                      : card.type === "silver"
-                        ? "border-gray-400"
-                        : "border-[#cd7f32]"
-                  }`}
-                >
-                  <div className="absolute top-0 right-0 p-2 opacity-5">
-                    <span className="material-symbols-outlined text-8xl">
-                      {card.type === "gold" || card.type === "silver"
-                        ? "workspace_premium"
-                        : "stars"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-start mb-6 relative z-10">
-                    <span
-                      className={`material-symbols-outlined text-5xl drop-shadow-sm ${
-                        card.type === "gold"
-                          ? "text-gold"
-                          : card.type === "silver"
-                            ? "text-gray-400"
-                            : "text-[#cd7f32]"
-                      }`}
-                    >
-                      {card.type === "gold" || card.type === "silver"
-                        ? "workspace_premium"
-                        : "stars"}
-                    </span>
-                    <span
-                      className={`text-[10px] font-black px-2 py-1 rounded shadow-sm ${
-                        card.type === "gold"
-                          ? "bg-gold text-deep-maroon"
-                          : card.type === "silver"
-                            ? "bg-gray-200 text-gray-700"
-                            : "bg-[#cd7f32]/20 text-[#a05a2c]"
-                      }`}
-                    >
-                      {card.place}
-                    </span>
-                  </div>
-                  <div className="mt-auto relative z-10">
-                    <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">
-                      Cup: {card.cup}
-                    </p>
-                    <h4 className="text-primary font-serif font-bold text-xl mb-1">
-                      {card.title}
-                    </h4>
-                    <div
-                      className={`flex items-center gap-2 mt-4 ${
-                        card.type === "gold"
-                          ? "text-gold"
-                          : card.type === "silver"
-                            ? "text-gray-400"
-                            : "text-[#cd7f32]"
-                      }`}
-                    >
-                      <span className="text-xs font-bold uppercase tracking-wider">
-                        {card.medal}
-                      </span>
+              {currentData && (
+                <div className="space-y-12 animate-fade-in-up">
+                  {/* Overall Standing Header */}
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-primary/10 pb-8 text-center md:text-left">
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/10 shrink-0">
+                        <span className="material-symbols-outlined text-primary">
+                          calendar_month
+                        </span>
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-serif font-bold text-primary uppercase tracking-tighter">
+                        Year {activeYear}
+                      </h3>
                     </div>
+                    {currentStanding && (
+                      <div className="flex items-center gap-6 bg-gradient-to-r from-deep-maroon to-primary border border-gold/40 p-1 pr-8 rounded-full shadow-xl">
+                        <div className="w-14 h-14 rounded-full bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
+                          <span className="material-symbols-outlined text-deep-maroon text-3xl font-bold">
+                            military_tech
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-gold/80 text-[10px] uppercase font-black tracking-widest leading-tight">
+                            Overall Standing
+                          </p>
+                          <p className="text-white font-black text-2xl leading-none font-serif">
+                            {getOrdinal(currentStanding.position)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {currentData.cards.map((card, index) => (
+                      <div
+                        key={index}
+                        className={`bg-white p-6 rounded-xl flex flex-col group hover:-translate-y-2 transition-all duration-300 shadow-xl border-t-4 relative overflow-hidden ${
+                          card.type === "gold"
+                            ? "border-gold"
+                            : card.type === "silver"
+                              ? "border-gray-400"
+                              : "border-[#cd7f32]"
+                        }`}
+                      >
+                        <div className="absolute top-0 right-0 p-2 opacity-5">
+                          <span className="material-symbols-outlined text-8xl">
+                            {card.type === "gold" || card.type === "silver"
+                              ? "workspace_premium"
+                              : "stars"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-start mb-6 relative z-10">
+                          <span
+                            className={`material-symbols-outlined text-5xl drop-shadow-sm ${
+                              card.type === "gold"
+                                ? "text-gold"
+                                : card.type === "silver"
+                                  ? "text-gray-400"
+                                  : "text-[#cd7f32]"
+                            }`}
+                          >
+                            {card.type === "gold" || card.type === "silver"
+                              ? "workspace_premium"
+                              : "stars"}
+                          </span>
+                          <span
+                            className={`text-[10px] font-black px-2 py-1 rounded shadow-sm ${
+                              card.type === "gold"
+                                ? "bg-gold text-deep-maroon"
+                                : card.type === "silver"
+                                  ? "bg-gray-200 text-gray-700"
+                                  : "bg-[#cd7f32]/20 text-[#a05a2c]"
+                            }`}
+                          >
+                            {card.place}
+                          </span>
+                        </div>
+                        <div className="mt-auto relative z-10">
+                          <h4 className="text-primary font-serif font-bold text-xl mb-1">
+                            {card.title}
+                          </h4>
+                          {card.caption && (
+                            <p className="text-gray-500 text-xs mb-2">{card.caption}</p>
+                          )}
+                          <div
+                            className={`flex items-center gap-2 mt-4 ${
+                              card.type === "gold"
+                                ? "text-gold"
+                                : card.type === "silver"
+                                  ? "text-gray-400"
+                                  : "text-[#cd7f32]"
+                            }`}
+                          >
+                            <span className="text-xs font-bold uppercase tracking-wider">
+                              {card.medal}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 

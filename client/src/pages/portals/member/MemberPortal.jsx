@@ -43,6 +43,16 @@ const DEPARTMENT_MAP = {
   EX: "Exploration Geophysics",
 };
 
+const JOB_PROFILE_MAP = {
+  SDE: "Software Development",
+  DATA: "Data Science / Analytics",
+  CONSULT: "Consulting",
+  FINANCE: "Finance",
+  CORE: "Core Engineering",
+  PRODUCT: "Product Management",
+  OTHERS: "Others",
+};
+
 const MemberPortal = () => {
   const { user } = useAuth();
   const [userData, setUserData] = useState(null);
@@ -106,6 +116,11 @@ const MemberPortal = () => {
         userData.student.department
       : "N/A",
     email: userData?.email || user?.email || "",
+    jobProfile: userData?.student?.jobProfile
+      ? JOB_PROFILE_MAP[userData.student.jobProfile] ||
+        userData.student.jobProfile
+      : "N/A",
+    linkedin: userData?.student?.linkedin || "",
   };
 
   const messCardDetails = {
@@ -210,6 +225,32 @@ const MemberPortal = () => {
                       <p className="font-medium text-sm sm:text-base">
                         {userProfile.roomNo}
                       </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">
+                        Job Profile
+                      </p>
+                      <p className="font-medium text-sm sm:text-base">
+                        {userProfile.jobProfile}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">
+                        LinkedIn
+                      </p>
+                      {userProfile.linkedin ? (
+                        <a
+                          href={userProfile.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[#0077B5] hover:text-[#005582] transition-colors font-medium text-sm sm:text-base"
+                        >
+                          <FaLinkedin size={18} />
+                          <span>Profile</span>
+                        </a>
+                      ) : (
+                        <p className="font-medium text-sm sm:text-base">N/A</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500 font-bold">

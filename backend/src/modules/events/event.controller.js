@@ -113,11 +113,9 @@ export const getEventApprovedParticipants = async (req, res) => {
     res.status(200).json(requests);
   } catch (error) {
     console.error("Error fetching approved participants:", error);
-    res
-      .status(500)
-      .json({
-        message: error.message || "Failed to fetch approved participants.",
-      });
+    res.status(500).json({
+      message: error.message || "Failed to fetch approved participants.",
+    });
   }
 };
 
@@ -138,11 +136,9 @@ export const updateParticipantStatus = async (req, res) => {
     res.status(200).json(updated);
   } catch (error) {
     console.error("Error updating participant status:", error);
-    res
-      .status(500)
-      .json({
-        message: error.message || "Failed to update participant status.",
-      });
+    res.status(500).json({
+      message: error.message || "Failed to update participant status.",
+    });
   }
 };
 
@@ -267,5 +263,47 @@ export const getStandingsByCategory = async (req, res) => {
     res
       .status(500)
       .json({ message: error.message || "Failed to fetch standings." });
+  }
+};
+
+export const upsertStanding = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { year, position, totalPoints } = req.body;
+
+    if (!year || !position) {
+      return res
+        .status(400)
+        .json({ message: "Year and position are required." });
+    }
+
+    const standing = await eventService.upsertOverallStanding({
+      category,
+      year,
+      position,
+      totalPoints,
+    });
+    res.status(200).json(standing);
+  } catch (error) {
+    console.error("Error upserting standing:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Failed to save standing." });
+  }
+};
+
+export const deleteStanding = async (req, res) => {
+  try {
+    const { standingId } = req.params;
+    await eventService.deleteOverallStanding(standingId);
+    res.status(200).json({ message: "Standing deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting standing:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "Standing not found." });
+    }
+    res
+      .status(500)
+      .json({ message: error.message || "Failed to delete standing." });
   }
 };
