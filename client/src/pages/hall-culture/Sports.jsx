@@ -106,37 +106,27 @@ const Sports = () => {
   const currentData = activeYear ? achievementsData[activeYear] : null;
   const currentStanding = activeYear ? standings[activeYear] : null;
 
-  const eventsData = [
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAoV9tCF3C4I5x53h6sD6w_7c0A2B1kE5G5H0I9J6KcL3M7N4O1P8Q2R5S3T0U7V4W9X8Y2Z1A7B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7", // Placeholder Image
-      title: "Cricket",
-      description:
-        "Strategizing victories on the pitch with discipline and teamwork.",
-      captain: "Rahul Sharma",
-      email: "rahul@example.com",
-      linkedin: "https://linkedin.com/in/rahul",
-    },
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAoV9tCF3C4I5x53h6sD6w_7c0A2B1kE5G5H0I9J6KcL3M7N4O1P8Q2R5S3T0U7V4W9X8Y2Z1A7B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7", // Placeholder Image
-      title: "Football",
-      description:
-        "Passion and agility driving us to the goalpost every single time.",
-      captain: "Amit Singh",
-      email: "amit@example.com",
-      linkedin: "https://linkedin.com/in/amit",
-    },
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAoV9tCF3C4I5x53h6sD6w_7c0A2B1kE5G5H0I9J6KcL3M7N4O1P8Q2R5S3T0U7V4W9X8Y2Z1A7B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7", // Placeholder Image
-      title: "Hockey",
-      description: "Stickwork and stamina defining our dominance on the field.",
-      captain: "Suresh Kumar",
-      email: "suresh@example.com",
-      linkedin: "https://linkedin.com/in/suresh",
-    },
-  ];
+  const [eventsData, setEventsData] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setEventsLoading(true);
+        const res = await fetch(
+          `${API_BASE}/api/events/category/SPORTS/events`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch events");
+        const data = await res.json();
+        setEventsData(data);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const [leadershipTeam, setLeadershipTeam] = useState([]);
   const [leadershipLoading, setLeadershipLoading] = useState(true);
@@ -490,63 +480,77 @@ const Sports = () => {
             </h2>
             <div className="h-1 w-20 bg-gold rounded-full"></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {eventsData.map((event, index) => (
-              <div
-                key={index}
-                className="group relative overflow-hidden rounded-xl bg-white border border-primary/10 hover:border-gold/50 transition-all duration-300 shadow-lg"
-              >
-                <div className="h-48 overflow-hidden">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    src={event.image}
-                    alt={event.title}
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-primary text-xl font-serif font-bold mb-1">
-                    {event.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    {event.description}
-                  </p>
-                  <div className="flex items-center gap-3 border-t border-gray-100 pt-4 justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary text-sm">
-                          person
-                        </span>
+          {eventsLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : eventsData.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <span className="material-symbols-outlined text-5xl mb-4 block">
+                sports_soccer
+              </span>
+              <p className="text-lg font-medium">No events found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {eventsData.map((event) => (
+                <div
+                  key={event.id}
+                  className="group relative overflow-hidden rounded-xl bg-white border border-primary/10 hover:border-gold/50 transition-all duration-300 shadow-lg"
+                >
+                  <div className="p-5">
+                    <h3 className="text-primary text-xl font-serif font-bold mb-1">
+                      {event.name}
+                    </h3>
+                    {event.description && (
+                      <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                        {event.description}
+                      </p>
+                    )}
+                    {event.captain && (
+                      <div className="flex items-center gap-3 border-t border-gray-100 pt-4 justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-sm">
+                              person
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-primary text-xs font-bold uppercase tracking-wide">
+                              Captain
+                            </p>
+                            <p className="text-gray-500 text-sm font-medium">
+                              {event.captain.name}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {event.captain.email && (
+                            <a
+                              href={`mailto:${event.captain.email}`}
+                              className="hover:text-primary transition-colors text-gray-400"
+                            >
+                              <MdEmail className="scale-115" />
+                            </a>
+                          )}
+                          {event.captain.linkedin && (
+                            <a
+                              href={event.captain.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-primary transition-colors text-gray-400"
+                            >
+                              <FaLinkedin />
+                            </a>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-primary text-xs font-bold uppercase tracking-wide">
-                          Captain
-                        </p>
-                        <p className="text-gray-500 text-sm font-medium">
-                          {event.captain}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <a
-                        href={`mailto:${event.email}`}
-                        className="hover:text-primary transition-colors text-gray-400"
-                      >
-                        <MdEmail className="scale-115" />
-                      </a>
-                      <a
-                        href={event.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-primary transition-colors text-gray-400"
-                      >
-                        <FaLinkedin />
-                      </a>
-                    </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

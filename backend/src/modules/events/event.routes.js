@@ -6,6 +6,7 @@ import authorize from "../../middleware/role.middleware.js";
 const router = express.Router();
 
 // Public routes for hall culture pages (no auth required)
+router.get("/category/:category/events", eventController.getEventsByCategory);
 router.get("/category/:category/results", eventController.getResultsByCategory);
 router.get(
   "/category/:category/standings",

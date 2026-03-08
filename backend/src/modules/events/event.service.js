@@ -197,6 +197,58 @@ export const deleteEventResult = async (eventId, resultId) => {
   });
 };
 
+export const getEventsByCategory = async (category) => {
+  const events = await prisma.event.findMany({
+    where: { category },
+    include: {
+      logs: {
+        where: {
+          role: "CAPTAIN",
+          status: "APPROVED",
+        },
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              rollNumber: true,
+              image: true,
+              linkedin: true,
+              user: {
+                select: {
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { year: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return events.map((event) => {
+    const captainLog = event.logs[0] || null;
+    return {
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      captain: captainLog
+        ? {
+            name: `${captainLog.student.firstName} ${captainLog.student.lastName}`,
+            rollNumber: captainLog.student.rollNumber,
+            image: captainLog.student.image,
+            email: captainLog.student.user?.email || "",
+            linkedin: captainLog.student.linkedin || "",
+          }
+        : null,
+    };
+  });
+};
+
 export const getEventResultsByCategory = async (category) => {
   const results = await prisma.eventResult.findMany({
     where: {

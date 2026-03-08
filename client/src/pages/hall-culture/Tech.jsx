@@ -101,46 +101,27 @@ const Tech = () => {
   const currentData = activeYear ? achievementsData[activeYear] : null;
   const currentStanding = activeYear ? standings[activeYear] : null;
 
-  const eventsData = [
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuBYq7gcBR1Nbaa5VjtSRAUhCes-LSLCcHfNaOEJh2oE6EKH9CiQIOAvwqnBqWn64f7kqKFiFtMcvK6oF_knlYOGso4y_uCp0uXZJGnZU7p5B2-YSXH1l8hsyJwkT7ARqn66_UUD6MELbZhMNfRauHS_Nv0pZrI8uiX1wPZTzICfoc5NTwe5GfKNEOTiuPJT77dp5nqfnS6-peC2PpH2t5aVNyxLeOUDSLTw58SMl3bhfBDI2s2pSwhbKdy-fpo0l8Rk73e9gC3z9sA",
-      title: "Robotics",
-      description:
-        "Autonomous navigation, vision systems and hardware modeling.",
-      captain: "Vikram Aditya",
-      email: "vikram@example.com",
-      linkedin: "https://linkedin.com/in/vikram",
-    },
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuA21YWFxbo9_iK5vQb9radCoLq3qUXAk_YZT7aBIw158JFdvgwRNhgMATBUQfpEt9hb5_UJAI1TogoCg8v6I_pgvmZh70A-sUdajsGBbBm8VGi9GxEj6YbT_KtAcIok9TXfRtChLz_d3_9RK24eAhVyWFI-Cd3fae0ZLSwcIh_zEYJk6kv-GwLpjtwPsRBT3nirOaJrjFxADMTzY_EKFAyjj7208zaxAPOs4Tg7RgItDq2kL8akyMhrPcHzexwflssQuvYCMHqFvm4",
-      title: "Data Science",
-      description:
-        "ML models, statistical analysis and predictive visualization.",
-      captain: "Ishita Roy",
-      email: "ishita@example.com",
-      linkedin: "https://linkedin.com/in/ishita",
-    },
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAVXtSDqQbVX9bzDFWY6Cvo4RXgGWrw3tzE71M-gCJbmJIh0-4uskdqdz8fhAGqIXfWW3BHFojJxppvX1r1AZGx491kecUGHR8bpz-99yYRsWAt9_FkRKbRBOkPILghO2GSxbN1FgXx-ty1CgXkpMynPIz-ywGjTMwXOY-kexfj2oQ3HUeuB6_17DRPQntbverkNpDCRnfH04DyuIRpUT_fS_KUTUt7ua55KzcrZWnqe7ESVvHBacBazjOaiLdeS_LdJyDyylu2yaY",
-      title: "Product Design",
-      description: "UI/UX research, prototyping and industrial CAD design.",
-      captain: "Samrat Sen",
-      email: "samrat@example.com",
-      linkedin: "https://linkedin.com/in/samrat",
-    },
-    {
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAVXtSDqQbVX9bzDFWY6Cvo4RXgGWrw3tzE71M-gCJbmJIh0-4uskdqdz8fhAGqIXfWW3BHFojJxppvX1r1AZGx491kecUGHR8bpz-99yYRsWAt9_FkRKbRBOkPILghO2GSxbN1FgXx-ty1CgXkpMynPIz-ywGjTMwXOY-kexfj2oQ3HUeuB6_17DRPQntbverkNpDCRnfH04DyuIRpUT_fS_KUTUt7ua55KzcrZWnqe7ESVvHBacBazjOaiLdeS_LdJyDyylu2yaY",
-      title: "Product Design",
-      description: "UI/UX research, prototyping and industrial CAD design.",
-      captain: "Samrat Sen",
-      email: "samrat@example.com",
-      linkedin: "https://linkedin.com/in/samrat",
-    },
-  ];
+  const [eventsData, setEventsData] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setEventsLoading(true);
+        const res = await fetch(
+          `${API_BASE}/api/events/category/TECHNOLOGY/events`
+        );
+        if (!res.ok) throw new Error("Failed to fetch events");
+        const data = await res.json();
+        setEventsData(data);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const [leadershipTeam, setLeadershipTeam] = useState([]);
   const [leadershipLoading, setLeadershipLoading] = useState(true);
@@ -483,47 +464,55 @@ const Tech = () => {
             </h2>
             <div className="h-1 w-20 bg-gold rounded-full"></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {eventsData.map((event, index) => (
-              <div
-                key={index}
-                className="group relative overflow-hidden rounded-xl bg-white border border-primary/10 hover:border-gold/50 transition-all duration-300 shadow-lg"
-              >
-                <div className="h-48 overflow-hidden">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    src={event.image}
-                    alt={event.title}
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-primary text-xl font-serif font-bold mb-1">
-                    {event.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    {event.description}
-                  </p>
-                  <div className="flex items-center gap-3 border-t border-gray-100 pt-4 justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary text-sm">
-                          person
-                        </span>
+          {eventsLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : eventsData.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <span className="material-symbols-outlined text-5xl mb-4 block">segment</span>
+              <p className="text-lg font-medium">No events found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {eventsData.map((event) => (
+                <div
+                  key={event.id}
+                  className="group relative overflow-hidden rounded-xl bg-white border border-primary/10 hover:border-gold/50 transition-all duration-300 shadow-lg"
+                >
+                  <div className="p-5">
+                    <h3 className="text-primary text-xl font-serif font-bold mb-1">
+                      {event.name}
+                    </h3>
+                    {event.description && (
+                      <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                        {event.description}
+                      </p>
+                    )}
+                    {event.captain && (
+                      <div className="flex items-center gap-3 border-t border-gray-100 pt-4 justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-sm">
+                              person
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-primary text-xs font-bold uppercase tracking-wide">
+                              Captain
+                            </p>
+                            <p className="text-gray-500 text-sm font-medium">
+                              {event.captain.name}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-primary text-xs font-bold uppercase tracking-wide">
-                          Captain
-                        </p>
-                        <p className="text-gray-500 text-sm font-medium">
-                          {event.captain}
-                        </p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

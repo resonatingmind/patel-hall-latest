@@ -239,6 +239,19 @@ export const deleteResult = async (req, res) => {
   }
 };
 
+export const getEventsByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const events = await eventService.getEventsByCategory(category);
+    res.status(200).json(events);
+  } catch (error) {
+    console.error("Error fetching events by category:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Failed to fetch events." });
+  }
+};
+
 export const getResultsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
