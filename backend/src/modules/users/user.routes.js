@@ -8,6 +8,7 @@ import {
   getAllAdministrativeMembers,
   updateAdministrativeMember,
   deleteAdministrativeMember,
+  updateMyProfile,
 } from "./user.controller.js";
 import authenticate from "../../middleware/auth.middleware.js";
 import authorize from "../../middleware/role.middleware.js";
@@ -17,12 +18,15 @@ const router = express.Router();
 // Any authenticated user can fetch their own profile
 router.get("/me", authenticate, getMe);
 
+// Update own profile (any authenticated student/council member)
+router.put("/me/profile", authenticate, updateMyProfile);
+
 // Allow fetching users by role
 router.get(
   "/role/:role",
   authenticate,
   authorize("ADMIN", "WARDEN", "COUNCIL"),
-  getUsersByRole
+  getUsersByRole,
 );
 
 // Base user creation (Supabase + Prisma)
@@ -34,7 +38,7 @@ router.post(
   "/administration/create",
   authenticate,
   authorize("ADMIN"),
-  createAdministrativeMember
+  createAdministrativeMember,
 );
 
 // Get all administrative members
@@ -42,7 +46,7 @@ router.get(
   "/administration",
   authenticate,
   authorize("ADMIN"),
-  getAllAdministrativeMembers
+  getAllAdministrativeMembers,
 );
 
 // Update an administrative member
@@ -50,7 +54,7 @@ router.put(
   "/administration/:id",
   authenticate,
   authorize("ADMIN"),
-  updateAdministrativeMember
+  updateAdministrativeMember,
 );
 
 // Delete an administrative member
@@ -58,7 +62,7 @@ router.delete(
   "/administration/:id",
   authenticate,
   authorize("ADMIN"),
-  deleteAdministrativeMember
+  deleteAdministrativeMember,
 );
 
 export default router;

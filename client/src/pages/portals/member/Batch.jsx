@@ -222,15 +222,15 @@ const Batch = () => {
                                 <tr className="bg-primary/5 border-b border-primary/10">
                                     <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[30%]">Name</th>
                                     <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[15%]">Room No</th>
-                                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[15%]">Dept</th>
-                                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[20%] text-right">Batch</th>
+                                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[20%]">Dept</th>
+                                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[15%] text-center">Batch</th>
                                     <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest w-[20%] text-right">Profile</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan="4" className="p-20 text-center">
+                                        <td colSpan="5" className="p-20 text-center">
                                             <div className="flex justify-center items-center">
                                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                                             </div>
@@ -238,7 +238,7 @@ const Batch = () => {
                                     </tr>
                                 ) : error ? (
                                     <tr>
-                                        <td colSpan="4" className="p-10 text-center text-red-500 font-bold">{error}</td>
+                                        <td colSpan="5" className="p-10 text-center text-red-500 font-bold">{error}</td>
                                     </tr>
                                 ) : students.map((student) => (
                                     <tr key={student.id || student._id || student.rollNumber} className="border-b border-gray-100 hover:bg-gray-50 transition-colors group">
@@ -258,17 +258,25 @@ const Batch = () => {
                                                 {student.department}
                                             </div>
                                         </td>
-                                        <td className="p-5 text-right">
-                                            {student.joiningYear && (
+                                        <td className="p-5 text-center">
+                                            {student.joiningYear ? (
                                                 <div className="inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-gray-50 text-gray-600 border-gray-200">
                                                     {student.joiningYear}
+                                                </div>
+                                            ) : (
+                                                <div className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 border border-gray-200">
+                                                    -
                                                 </div>
                                             )}
                                         </td>
                                         <td className="p-5 text-right">
-                                            {student.profile && (
+                                            {student.profile ? (
                                                 <div className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${getProfileColor(student.profile)}`}>
                                                     {student.profile}
+                                                </div>
+                                            ) : (
+                                                <div className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-400 border border-gray-200">
+                                                    Unspecified
                                                 </div>
                                             )}
                                         </td>
@@ -283,7 +291,7 @@ const Batch = () => {
                                 <p className="text-lg font-medium">No students found matching filters.</p>
                                  <button 
                                     onClick={() => setFilters({ block: 'All', dept: 'All', batch: 'All', profile: 'All', search: '' })}
-                                    className="mt-4 text-primary font-bold hover:underline"
+                                    className="mt-4 text-primary font-bold hover:underline cursor-pointer"
                                 >
                                     Clear all filters
                                 </button>

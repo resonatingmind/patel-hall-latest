@@ -6,6 +6,7 @@ import {
   getAllAdministrativeMembersService,
   updateAdministrativeMemberService,
   deleteAdministrativeMemberService,
+  updateMyProfileService,
 } from "./user.service.js";
 import { prisma } from "../../config/prisma.js";
 
@@ -180,7 +181,10 @@ const updateAdministrativeMember = async (req, res) => {
       });
     }
 
-    const updatedMember = await updateAdministrativeMemberService(id, updateData);
+    const updatedMember = await updateAdministrativeMemberService(
+      id,
+      updateData,
+    );
 
     res.status(200).json({
       message: "Administrative member updated successfully",
@@ -224,6 +228,25 @@ const deleteAdministrativeMember = async (req, res) => {
   }
 };
 
+const updateMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updateData = req.body;
+
+    const student = await updateMyProfileService(userId, updateData);
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      student,
+    });
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({
+      message: err.message || "Failed to update profile",
+    });
+  }
+};
+
 export {
   createUser,
   bulkCreateUsers,
@@ -233,4 +256,5 @@ export {
   getAllAdministrativeMembers,
   updateAdministrativeMember,
   deleteAdministrativeMember,
+  updateMyProfile,
 };

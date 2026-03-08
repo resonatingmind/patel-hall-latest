@@ -74,9 +74,9 @@ const bulkCreateUsersService = async (users) => {
 };
 
 const getMeService = async (userId) => {
-  const user = await prisma.user.findUnique({ 
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { student: true, administration: true }
+    include: { student: true, administration: true },
   });
   if (!user) {
     console.error(`DEBUG: User with id ${userId} not found in database.`);
@@ -87,16 +87,16 @@ const getMeService = async (userId) => {
 
 const getUsersByRoleService = async (role) => {
   // Query Prisma for users with the specified role and include the administration relation
-  const users = await prisma.user.findMany({ 
+  const users = await prisma.user.findMany({
     where: { role },
-    include: { administration: true } 
+    include: { administration: true },
   });
-  
+
   // Format the returned user response to map the administration details cleanly
-  return users.map(user => ({
+  return users.map((user) => ({
     ...user,
-    name: user.administration 
-      ? `${user.administration.firstName} ${user.administration.lastName}`.trim() 
+    name: user.administration
+      ? `${user.administration.firstName} ${user.administration.lastName}`.trim()
       : null,
     position: user.administration?.position || null,
     phone: user.administration?.phone || null,
@@ -109,29 +109,29 @@ const getAllAdministrativeMembersService = async () => {
   const users = await prisma.user.findMany({
     where: {
       role: {
-        in: ['ADMIN', 'WARDEN']
-      }
+        in: ["ADMIN", "WARDEN"],
+      },
     },
     include: {
-      administration: true
+      administration: true,
     },
     orderBy: {
-      createdAt: 'desc'
-    }
+      createdAt: "desc",
+    },
   });
 
-  return users.map(user => ({
+  return users.map((user) => ({
     id: user.id,
     email: user.email,
     role: user.role,
     createdAt: user.createdAt,
-    firstName: user.administration?.firstName || '',
-    lastName: user.administration?.lastName || '',
-    position: user.administration?.position || '',
+    firstName: user.administration?.firstName || "",
+    lastName: user.administration?.lastName || "",
+    position: user.administration?.position || "",
     phone: user.administration?.phone || null,
     office: user.administration?.office || null,
-    name: user.administration 
-      ? `${user.administration.firstName} ${user.administration.lastName}`.trim() 
+    name: user.administration
+      ? `${user.administration.firstName} ${user.administration.lastName}`.trim()
       : null,
   }));
 };
@@ -144,7 +144,7 @@ const updateAdministrativeMemberService = async (userId, updateData) => {
   if (role) {
     await prisma.user.update({
       where: { id: userId },
-      data: { role: role.toUpperCase() }
+      data: { role: role.toUpperCase() },
     });
   }
 
@@ -160,22 +160,22 @@ const updateAdministrativeMemberService = async (userId, updateData) => {
     },
     create: {
       id: userId,
-      firstName: firstName || '',
-      lastName: lastName || '',
-      position: position || '',
+      firstName: firstName || "",
+      lastName: lastName || "",
+      position: position || "",
       phone: phone || null,
       office: office || null,
-    }
+    },
   });
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { administration: true }
+    include: { administration: true },
   });
 
   return {
     ...user,
-    administration
+    administration,
   };
 };
 
@@ -183,12 +183,12 @@ const updateAdministrativeMemberService = async (userId, updateData) => {
 const deleteAdministrativeMemberService = async (userId) => {
   // Delete administration profile first (due to foreign key constraint)
   await prisma.administration.deleteMany({
-    where: { id: userId }
+    where: { id: userId },
   });
 
   // Delete user from Prisma
   await prisma.user.delete({
-    where: { id: userId }
+    where: { id: userId },
   });
 
   // Delete user from Supabase Auth
@@ -200,12 +200,50 @@ const deleteAdministrativeMemberService = async (userId) => {
   return { success: true };
 };
 
-export { 
-  createUserService, 
-  bulkCreateUsersService, 
-  getMeService, 
+// Update the authenticated user's own student profile
+const updateMyProfileService = async (userId, updateData) => {
+  // Find the student linked to this user
+  const student = await prisma.student.findUnique({
+    where: { userId },
+  });
+
+  if (!student) {
+    throw new Error("Student profile not found");
+  }
+
+  const {
+    firstName,
+    lastName,
+    block,
+    roomNumber,
+    linkedin,
+    jobProfile,
+    image,
+  } = updateData;
+
+  const updated = await prisma.student.update({
+    where: { id: student.id },
+    data: {
+      firstName: firstName ?? undefined,
+      lastName: lastName ?? undefined,
+      block: block ?? undefined,
+      roomNumber: roomNumber !== undefined ? parseInt(roomNumber) : undefined,
+      linkedin: linkedin ?? undefined,
+      jobProfile: jobProfile ?? undefined,
+      image: image ?? undefined,
+    },
+  });
+
+  return updated;
+};
+
+export {
+  createUserService,
+  bulkCreateUsersService,
+  getMeService,
   getUsersByRoleService,
   getAllAdministrativeMembersService,
   updateAdministrativeMemberService,
-  deleteAdministrativeMemberService
+  deleteAdministrativeMemberService,
+  updateMyProfileService,
 };

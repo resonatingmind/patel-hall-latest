@@ -131,7 +131,7 @@ const Navbar = () => {
                   className="flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary rounded-xl font-medium transition-all duration-200 group"
                   to="/initiatives"
                 >
-                  <span>Initiatives</span>
+                  <span>Social Initiatives</span>
                   <span className="material-symbols-outlined text-[18px] opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-200">
                     arrow_forward
                   </span>
@@ -237,7 +237,7 @@ const Navbar = () => {
                   to="/initiatives"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Initiatives
+                  Social Initiatives
                 </Link>
               </div>
             </div>

@@ -15,16 +15,25 @@ const formatStatus = (status) => {
 const formatCategory = (category) => {
     if (!category) return '';
     const lower = category.toLowerCase();
-    if (lower === 'technical' || lower === 'tech') return 'Technical';
-    if (lower === 'cultural') return 'Cultural';
+    if (lower === 'technology') return 'Technology';
+    if (lower === 'social_and_cultural') return 'Social and Cultural';
     if (lower === 'sports') return 'Sports';
+    if (lower === 'hall_affairs') return 'Hall Affairs';
     return category;
 };
 
 const EVENT_CATEGORIES = [
-    { value: 'TECHNICAL', label: 'Technical' },
-    { value: 'CULTURAL', label: 'Cultural' },
+    { value: 'TECHNOLOGY', label: 'Technology' },
+    { value: 'SOCIAL_AND_CULTURAL', label: 'Social and Cultural' },
     { value: 'SPORTS', label: 'Sports' },
+    { value: 'HALL_AFFAIRS', label: 'Hall Affairs' },
+];
+
+const ROLES = [
+    { value: 'MEMBER', label: 'Member' },
+    { value: 'CAPTAIN', label: 'Captain' },
+    { value: 'VICE_CAPTAIN', label: 'Vice Captain' },
+    { value: 'COORDINATOR', label: 'Coordinator' },
 ];
 
 const getStatusStyle = (status) => {
@@ -56,29 +65,24 @@ const ParticipationLog = () => {
     const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const getYears = () => {
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let i = 0; i < 4; i++) {
+            years.push(currentYear - i);
+        }
+        return years;
+    };
+
+    const sessionYears = getYears();
+
     const [formData, setFormData] = useState({
         category: EVENT_CATEGORIES[0].value,
         eventId: '',
-        role: '',
-        year: '2024-25',
+        role: ROLES[0].value,
+        year: sessionYears[0],
         proof: null
     });
-    const getAcademicSessions = () => {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        // If we are before July, the 'current' academic year started last year
-        const startYear = now.getMonth() < 6 ? currentYear - 1 : currentYear;
-
-        const sessions = [];
-        for (let i = 0; i < 4; i++) {
-            const year = startYear - i;
-            const nextYearShort = (year + 1).toString().slice(-2);
-            sessions.push(`${year}-${nextYearShort}`);
-        }
-        return sessions;
-    };
-
-    const sessions = getAcademicSessions();
 
     const [participationData, setParticipationData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -221,8 +225,7 @@ const ParticipationLog = () => {
                 const payload = {
                     eventId: formData.eventId,
                     role: formData.role,
-                    category: formData.category || null,
-                    year: formData.year || null,
+                    year: formData.year ? parseInt(formData.year, 10) : null,
                     proof: proofUrl
                 };
 
@@ -235,8 +238,8 @@ const ParticipationLog = () => {
                 setFormData({
                     category: EVENT_CATEGORIES[0].value,
                     eventId: '',
-                    role: '',
-                    year: sessions[0] || '2024-25',
+                    role: ROLES[0].value,
+                    year: sessionYears[0],
                     proof: null
                 });
                 await fetchMyParticipations();
@@ -293,80 +296,75 @@ const ParticipationLog = () => {
             </section>
 
             {/* Log List Section */}
-            <section className="py-12 md:py-20 px-4 md:px-20 lg:px-40 flex justify-center relative z-20 -mt-26">
-                <div className="max-w-[1000px] w-full bg-white rounded-xl shadow-2xl overflow-hidden border-t-4 border-gold">
-                    <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                             <h3 className="text-primary text-2xl font-serif font-bold flex items-center gap-2">
-                                <MdHistory className="text-gold" /> Activity History
-                             </h3>
-                             <p className="text-gray-500 text-sm mt-1">Track your verified hall activities and events.</p>
+            <section className="py-12 md:py-16 px-4 md:px-10 lg:px-20 mx-auto max-w-[1200px] w-full flex flex-col gap-10 relative z-20">
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col">
+                    <div className="p-5 bg-gray-50 border-b border-gray-100 flex justify-between items-center sm:flex-row flex-col gap-4">
+                        <div className="flex items-center gap-3">
+                             <MdHistory size={32} className="text-primary" />
+                             <div>
+                                 <h3 className="text-2xl font-serif font-bold text-primary">Activity History</h3>
+                                 <p className="text-gray-500 text-sm mt-0.5">Track your verified hall activities and events.</p>
+                             </div>
                         </div>
                         <div className="flex items-center gap-4">
                             <button 
                                 onClick={() => setIsModalOpen(true)}
-                                className="flex items-center gap-2 bg-primary text-white text-sm font-bold uppercase tracking-wider px-6 py-2.5 rounded-full shadow-lg shadow-primary/20 hover:bg-deep-maroon transition-all transform hover:scale-105"
+                                className="cursor-pointer px-4 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-gold transition-colors flex items-center gap-2 text-sm shadow-md uppercase tracking-wider"
                             >
-                                <MdAdd size={18} /> Add New
+                                <MdAdd size={20} /> Add New
                             </button>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Total Activities:</span>
-                                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full font-bold">{participationData.length}</span>
-                            </div>
                         </div>
                     </div>
 
-                    <div className="min-h-[200px]">
+                    <div className="p-0 overflow-x-auto flex-grow min-h-[200px]">
                         {isLoading ? (
                             <div className="flex justify-center items-center py-16">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
                             </div>
                         ) : participationData.length === 0 ? (
-                            <div className="p-12 text-center text-gray-400">
+                            <div className="p-16 text-center text-gray-400 italic">
                                 <p>No participation records found.</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-primary/5 border-b border-primary/10">
-                                            <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Academic Year</th>
-                                            <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Event Name</th>
-                                            <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Role</th>
-                                            <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {participationData.map((item, index) => {
-                                            const { classes, Icon } = getStatusStyle(item.status);
-                                            return (
-                                                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors group">
-                                                    <td className="p-5">
-                                                        <span className="font-mono text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">{item.year}</span>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <div className="font-bold text-gray-800 text-lg group-hover:text-primary transition-colors">
-                                                            {item.event?.name || 'Unknown Event'}
-                                                        </div>
-                                                        <div className="text-xs text-gray-400 font-medium uppercase tracking-wider mt-0.5">
-                                                            {formatCategory(item.event?.category || item.category)}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <div className="font-medium text-gray-700">{item.role}</div>
-                                                    </td>
-                                                    <td className="p-5 text-right">
-                                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${classes}`}>
-                                                            <Icon size={14} />
-                                                            {formatStatus(item.status)}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <table className="w-full text-center table-fixed border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider border-b border-gray-200">
+                                        <th className="px-6 py-4 font-bold border-b border-gray-200 text-center w-1/4">Year</th>
+                                        <th className="px-6 py-4 font-bold border-b border-gray-200 text-center w-1/4">Event Name</th>
+                                        <th className="px-6 py-4 font-bold border-b border-gray-200 text-center w-1/4">Role</th>
+                                        <th className="px-6 py-4 font-bold border-b border-gray-200 text-center w-1/4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    {participationData.map((item, index) => {
+                                        const { classes, Icon } = getStatusStyle(item.status);
+                                        return (
+                                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50/80 transition-colors">
+                                                <td className="px-6 py-4 text-center font-bold text-primary align-middle">
+                                                    {item.year}
+                                                </td>
+                                                <td className="px-6 py-4 text-center align-middle">
+                                                    <div className="font-bold text-gray-800 text-base">
+                                                        {item.event?.name || 'Unknown Event'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 uppercase font-medium mt-1 tracking-wider">
+                                                        {formatCategory(item.event?.category || item.category)}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-700 capitalize font-medium text-center align-middle">
+                                                    {(item.role || 'MEMBER').replace('_', ' ').toLowerCase()}
+                                                </td>
+                                                <td className="px-6 py-4 text-center align-middle">
+                                                    <div className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-sm ${classes}`}>
+                                                        <Icon size={14} />
+                                                        {formatStatus(item.status)}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         )}
                     </div>
                 </div>
@@ -376,10 +374,12 @@ const ParticipationLog = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)}></div>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
-                            <h3 className="text-xl font-serif font-bold text-primary">Add Participation</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+                            <h3 className="text-xl font-bold font-serif text-primary flex items-center gap-2">
+                                <MdAdd className="text-gold" /> Add Participation
+                            </h3>
+                            <button onClick={() => setIsModalOpen(false)} className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-200">
                                 <MdClose size={24} />
                             </button>
                         </div>
@@ -391,7 +391,7 @@ const ParticipationLog = () => {
                                     name="category"
                                     value={formData.category}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 font-medium bg-white"
                                 >
                                     {EVENT_CATEGORIES.map((cat) => (
                                         <option key={cat.value} value={cat.value}>
@@ -408,7 +408,7 @@ const ParticipationLog = () => {
                                     value={formData.eventId}
                                     onChange={handleInputChange}
                                     required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 font-medium bg-white"
                                 >
                                     <option value="">Select event</option>
                                     {events.map((event) => (
@@ -427,32 +427,36 @@ const ParticipationLog = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Academic Year</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Year</label>
                                     <select 
                                         name="year"
                                         value={formData.year}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 bg-white"
-                                    >{sessions.map((session) => (
-                                        <option key={session} value={session}>
-                                            {session}
-                                        </option>
-                                    ))}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 font-medium bg-white"
+                                    >
+                                        {sessionYears.map((y) => (
+                                            <option key={y} value={y}>
+                                                {y}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Role / Position</label>
-                                <input 
-                                    type="text" 
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleInputChange}
-                                    placeholder="e.g. Captain, Member, Volunteer"
-                                    required
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700"
-                                />
+                                
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Role</label>
+                                    <select 
+                                        name="role"
+                                        value={formData.role}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-all text-gray-700 font-medium bg-white"
+                                    >
+                                        {ROLES.map((r) => (
+                                            <option key={r.value} value={r.value}>
+                                                {r.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {false && (
@@ -472,18 +476,20 @@ const ParticipationLog = () => {
                                 </div>
                             )}
 
-                            <div className="pt-4 flex gap-4">
+                            <div className="pt-2 flex gap-3 flex-shrink-0 justify-end border-t border-gray-100 mt-2">
                                 <button 
                                     type="button" 
                                     onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 px-6 py-3 rounded-lg border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all uppercase text-sm tracking-wide"
+                                    className="cursor-pointer px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     type="submit" 
-                                    className="flex-1 px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-deep-maroon shadow-lg shadow-primary/20 transition-all uppercase text-sm tracking-wide"
+                                    className="cursor-pointer px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-gold transition-colors shadow-md flex items-center gap-2 disabled:opacity-50"
+                                    disabled={isSubmitting}
                                 >
+                                    {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
                                     Submit
                                 </button>
                             </div>

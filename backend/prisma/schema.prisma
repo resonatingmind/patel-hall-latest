@@ -85,6 +85,9 @@ model Student {
 
   jobProfile  JobProfile?
 
+  image       String?     // URL of student's profile image
+  linkedin    String?     // LinkedIn profile URL
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -102,6 +105,8 @@ model Administration {
   position  String  // Warden, Assistant Warden, Caretaker, etc.
   phone     String?
   office    String?
+  image     String?     // URL of profile image
+  linkedin  String?     // LinkedIn profile URL
 }
 
 model HallPosition {
