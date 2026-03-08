@@ -157,18 +157,37 @@ model Event {
 }
 
 model EventResult {
-  id       String @id @default(uuid())
+  id         String   @id @default(uuid())
+  eventId    String
+  year       Int
+  position   Int
+  caption    String?
 
-  eventId  String
-  year     Int
-  position Int
-  caption  String?
+  // Relation to the Category-based Overall Standing
+  standingId String?
+  standing   OverallStanding? @relation(fields: [standingId], references: [id])
 
-  event Event @relation(fields: [eventId], references: [id])
+  event      Event    @relation(fields: [eventId], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@unique([eventId, year])
+}
+
+model OverallStanding {
+  id           String        @id @default(uuid())
+  year         Int
+  category     EventCategory
+  totalPoints  Float         @default(0) // Aggregated points for that category
+  position     Int           // Final rank in that category (e.g., 1st, 2nd)
+  
+  // Relation to the specific results that built this standing
+  results      EventResult[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([year, category]) // One standing record per category per year
 }
 
 enum ParticipationRole {
