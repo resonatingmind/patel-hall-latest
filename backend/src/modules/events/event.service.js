@@ -285,6 +285,11 @@ export const getLeadershipByCategory = async (category) => {
           rollNumber: true,
           image: true,
           linkedin: true,
+          user: {
+            select: {
+              email: true,
+            },
+          },
         },
       },
     },

@@ -142,48 +142,37 @@ const Tech = () => {
     },
   ];
 
-  const leadershipTeam = [
-    {
-      name: "Vedant Sewatkar",
-      role: "Advisor",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAlL96oUy_Crpfs2JzDdA0Tg3QApTyAVU7tmT56IK2QZIKDmUK7Fg6cNs2nbMIpynQg6fPedMQLuc4HzT3gZm6xKGrMcaiDkgUDVvf1ceFZr2lggvj_rEOOrxdWijR59JyMkdU9-v2tdrHnUxq0lCYes0XKyGsb2OdGv7NelM2UayJ4QlqMCpwwpx5mpq2PqMdBCIvvE8U1Jchj5ryD6zZgQGklecxnDQwhgC3nAeDoB_IP-ti5veRU4sxVR-VzsQYwEPFa0tJ1f0g",
-      email: "aravind@example.com",
-      linkedin: "https://linkedin.com/in/aravind",
-    },
-    {
-      name: "Aditya Kariwal",
-      role: "General Secretary Technology",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuBdNuyWO-pytQXzGPEAHpos7ZvqGwSC-Hrv1Eq9qwpiWAVUUcSHgueEH1zhkC7Y-xJv5keuhuaA1yfrjZECQkxJqfU0gmQclxXj6dQivGUUwCWcTCT-F6ZBllOkt-GKPGyn1RQIGt56jzSR8ZPA54vV7xA9tVeUgE2qTvgx1fKZuNssN2nV9I478YgxDuwoGE2YzhAc3lbxmFdDZzp30-LjyHrgrzEh9dPMILTjGEfO_EsKwFZl7NQ3OzT2c9D_drsOMMRaFe7zIZw",
-      email: "ananya@example.com",
-      linkedin: "https://linkedin.com/in/ananya",
-    },
-    {
-      name: "Sushant Verma",
-      role: "Tech Coordinator",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuCYunzI8N-rMvKgHtKONbqIzzVo_F_1ude-n-BEQxhMdOU-9VMvyGNXkAp91afkstFo50ecP6mH50fg5xuDfsM9lcA6XCGIJQtdViFx5gWrloxY_RffKybhZA41sBd-JTZHV_K2AvSFAAGdCgZzjOUXjfV18SxsQ_5u2khEjOK1KrCNQlqNQyHLilRwU9rEIq1HOum2TSN4hGwE_i1A8UEtbwvvx-pC9AohMED132oymeJtZUBQhTibp894HDmiJDf7fETxH51lE1Q",
-      email: "rohan@example.com",
-      linkedin: "https://linkedin.com/in/rohan",
-    },
-    {
-      name: "Akshat Sharma",
-      role: "Secretary",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuCYunzI8N-rMvKgHtKONbqIzzVo_F_1ude-n-BEQxhMdOU-9VMvyGNXkAp91afkstFo50ecP6mH50fg5xuDfsM9lcA6XCGIJQtdViFx5gWrloxY_RffKybhZA41sBd-JTZHV_K2AvSFAAGdCgZzjOUXjfV18SxsQ_5u2khEjOK1KrCNQlqNQyHLilRwU9rEIq1HOum2TSN4hGwE_i1A8UEtbwvvx-pC9AohMED132oymeJtZUBQhTibp894HDmiJDf7fETxH51lE1Q",
-      email: "rohan@example.com",
-      linkedin: "https://linkedin.com/in/rohan",
-    },
-    {
-      name: "Shreyash Prashant Yadav",
-      role: "Secretary",
-      image:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuCYunzI8N-rMvKgHtKONbqIzzVo_F_1ude-n-BEQxhMdOU-9VMvyGNXkAp91afkstFo50ecP6mH50fg5xuDfsM9lcA6XCGIJQtdViFx5gWrloxY_RffKybhZA41sBd-JTZHV_K2AvSFAAGdCgZzjOUXjfV18SxsQ_5u2khEjOK1KrCNQlqNQyHLilRwU9rEIq1HOum2TSN4hGwE_i1A8UEtbwvvx-pC9AohMED132oymeJtZUBQhTibp894HDmiJDf7fETxH51lE1Q",
-      email: "rohan@example.com",
-      linkedin: "https://linkedin.com/in/rohan",
-    },
-  ];
+  const [leadershipTeam, setLeadershipTeam] = useState([]);
+  const [leadershipLoading, setLeadershipLoading] = useState(true);
+
+  const DEFAULT_AVATAR =
+    "https://upload.wikimedia.org/wikipedia/commons/2/2c/Default_pfp.svg";
+
+  useEffect(() => {
+    const fetchLeadership = async () => {
+      try {
+        setLeadershipLoading(true);
+        const res = await fetch(
+          `${API_BASE}/api/events/category/TECHNOLOGY/leadership`
+        );
+        if (!res.ok) throw new Error("Failed to fetch leadership team");
+        const data = await res.json();
+        const mapped = data.map((m) => ({
+          name: `${m.student.firstName} ${m.student.lastName}`,
+          role: m.role,
+          image: m.student.image || DEFAULT_AVATAR,
+          email: m.student.user?.email || "",
+          linkedin: m.student.linkedin || "",
+        }));
+        setLeadershipTeam(mapped);
+      } catch (err) {
+        console.error("Error fetching leadership team:", err);
+      } finally {
+        setLeadershipLoading(false);
+      }
+    };
+    fetchLeadership();
+  }, []);
 
   const galleryImages = [
     "https://lh3.googleusercontent.com/aida-public/AB6AXuCx8Okuv6AeEbTvpuupAI-UqoyEECw8P0U3b1JX5qrcskDvNcPg8NHzyA_d62ovvipi23uHF9u4wfCAR8t2BQ0eaiNyHKrkwQ1GVUWr0XXxkVIEcvUuqVyx5xTK1eNtguqfpE04VciFBL-ODPOnqcHEF-qMWYS0mlQwcn7C9V-AK5CTIwiY7csByBrX0IBwUrjN3-X85LKXydfQCCEBjSh42iGl8JAjIhiHnWSqAiCDR5SlkiW7d_fbMGuktYgfUPbzGCh_sJ88ke0",
@@ -422,47 +411,63 @@ const Tech = () => {
             </h2>
             <div className="h-1 w-20 bg-gold rounded-full"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {leadershipTeam.map((member, index) => (
-              <div
-                key={index}
-                className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg"
-              >
-                <div className="aspect-[4/5] relative overflow-hidden">
-                  <img
-                    alt={member.role}
-                    className="w-full h-full object-cover transition-all duration-500"
-                    src={member.image}
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4"></div>
-                </div>
-                <div className="p-5 flex flex-col items-center text-center grow">
-                  <h4 className="text-primary font-serif font-bold text-lg mb-1">
-                    {member.name}
-                  </h4>
-                  <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
-                    {member.role}
-                  </p>
-                  <div className="flex gap-4 mt-auto">
-                    <a
-                      className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                      href={`mailto:${member.email}`}
-                    >
-                      <MdEmail className="scale-115" />
-                    </a>
-                    <a
-                      className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
-                      href={member.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <FaLinkedin />
-                    </a>
+          {leadershipLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : leadershipTeam.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              <span className="material-symbols-outlined text-5xl mb-4 block">group</span>
+              <p className="text-lg font-medium">No leadership members found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {leadershipTeam.map((member, index) => (
+                <div
+                  key={index}
+                  className="bg-ivory rounded-2xl overflow-hidden group border border-primary/5 hover:border-gold/50 transition-all flex flex-col shadow-lg"
+                >
+                  <div className="aspect-[4/5] relative overflow-hidden bg-gray-100">
+                    <img
+                      alt={member.name}
+                      className="w-full h-full object-cover transition-all duration-500"
+                      src={member.image}
+                      onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_AVATAR; }}
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-deep-maroon/90 to-transparent p-4"></div>
+                  </div>
+                  <div className="p-5 flex flex-col items-center text-center grow">
+                    <h4 className="text-primary font-serif font-bold text-lg mb-1">
+                      {member.name}
+                    </h4>
+                    <p className="text-gray-500 text-xs mb-4 uppercase tracking-wider">
+                      {member.role}
+                    </p>
+                    <div className="flex gap-4 mt-auto">
+                      {member.email && (
+                        <a
+                          className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
+                          href={`mailto:${member.email}`}
+                        >
+                          <MdEmail className="scale-115" />
+                        </a>
+                      )}
+                      {member.linkedin && (
+                        <a
+                          className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center text-primary/60 hover:text-white hover:bg-primary transition-all"
+                          href={member.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaLinkedin />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
