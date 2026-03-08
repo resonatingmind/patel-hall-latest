@@ -39,6 +39,7 @@ const CouncilManageEvents = () => {
   const [newEventData, setNewEventData] = useState({
     name: "",
     category: "SPORTS",
+    description: "",
   });
   const [editEventData, setEditEventData] = useState({
     name: "",
@@ -339,7 +340,7 @@ const CouncilManageEvents = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setShowCreateModal(false);
-      setNewEventData({ name: "", category: "SPORTS" });
+      setNewEventData({ name: "", category: "SPORTS", description: "" });
       fetchEvents();
     } catch (err) {
       setActionError(err.response?.data?.message || "Failed to create event");
@@ -694,6 +695,20 @@ const CouncilManageEvents = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={newEventData.description}
+                    onChange={(e) =>
+                      setNewEventData({ ...newEventData, description: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold focus:border-gold outline-none transition-all resize-none"
+                    placeholder="Brief description of the event"
+                  />
                 </div>
               </div>
 

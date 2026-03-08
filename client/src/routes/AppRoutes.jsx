@@ -47,12 +47,12 @@ const AppRoutes = () => {
       />
       <Route path="/administration" element={<Administration />} />
       <Route path="/about" element={<About />} />
+      <Route path="/council" element={<Council />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/portal" element={<Portal />} />
         <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="/council" element={<Council />} />
         <Route path="/portal/participation-log" element={<ParticipationLog />} />
         <Route path="/portal/batch" element={<Batch />} />
         <Route path="/portal/submit-grievance" element={<SubmitGrievance />} />

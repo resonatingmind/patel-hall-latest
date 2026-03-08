@@ -551,7 +551,7 @@ const Sports = () => {
       </section>
 
       {/* Gallery Section */}
-      <section className="py-12 md:py-16">
+      <section className="hidden py-12 md:py-16">
         <div className="px-4 md:px-20 lg:px-40">
           <div className="flex items-center justify-between mb-8">
             <div>

@@ -150,6 +150,7 @@ model Event {
   id        String   @id @default(uuid())
   name      String   @unique
   category  EventCategory
+  description String?
 
   logs      ParticipationLog[]
   results   EventResult[]
