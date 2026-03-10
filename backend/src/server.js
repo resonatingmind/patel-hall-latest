@@ -4,7 +4,8 @@ import userRoutes from "./modules/users/user.routes.js";
 import studentRoutes from "./modules/students/student.routes.js";
 import alumniRoutes from "./modules/alumni/alumni.routes.js";
 import grievanceRoutes from "./modules/grievance/grievance.routes.js";
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+console.log(PORT);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the Patel Hall API!");
