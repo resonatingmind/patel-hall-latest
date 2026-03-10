@@ -142,19 +142,31 @@ const CouncilManageEvents = () => {
       setStandingActionLoading(true);
       setStandingsError("");
       const token = await getToken();
-      await axios.post(
-        `${API_BASE_URL}/api/events/category/${standingsCategory.value}/standings`,
-        {
-          year: parseInt(standingForm.year, 10),
-          position: parseInt(standingForm.position, 10),
-          totalPoints: standingForm.totalPoints
-            ? parseFloat(standingForm.totalPoints)
-            : 0,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const payload = {
+        year: parseInt(standingForm.year, 10),
+        position: parseInt(standingForm.position, 10),
+        totalPoints: standingForm.totalPoints
+          ? parseFloat(standingForm.totalPoints)
+          : 0,
+      };
+
+      if (editingStandingId) {
+        await axios.put(
+          `${API_BASE_URL}/api/events/standings/${editingStandingId}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+      } else {
+        await axios.post(
+          `${API_BASE_URL}/api/events/category/${standingsCategory.value}/standings`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+      }
       setStandingForm({ year: "", position: "", totalPoints: "" });
       setEditingStandingId(null);
       await fetchStandings(standingsCategory.value);
@@ -267,17 +279,29 @@ const CouncilManageEvents = () => {
       setLeadershipActionLoading(true);
       setLeadershipError("");
       const token = await getToken();
-      await axios.post(
-        `${API_BASE_URL}/api/events/category/${leadershipCategory.value}/leadership`,
-        {
-          rollNumber: leadershipForm.rollNumber,
-          role: leadershipForm.role,
-          year: parseInt(leadershipForm.year, 10),
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const payload = {
+        rollNumber: leadershipForm.rollNumber,
+        role: leadershipForm.role,
+        year: parseInt(leadershipForm.year, 10),
+      };
+
+      if (editingLeadershipId) {
+        await axios.put(
+          `${API_BASE_URL}/api/events/leadership/${editingLeadershipId}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+      } else {
+        await axios.post(
+          `${API_BASE_URL}/api/events/category/${leadershipCategory.value}/leadership`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+      }
       setLeadershipForm({ rollNumber: "", role: "", year: "" });
       setStudentSearch("");
       setShowStudentDropdown(false);
