@@ -727,7 +727,10 @@ const CouncilManageEvents = () => {
                   <textarea
                     value={newEventData.description}
                     onChange={(e) =>
-                      setNewEventData({ ...newEventData, description: e.target.value })
+                      setNewEventData({
+                        ...newEventData,
+                        description: e.target.value,
+                      })
                     }
                     rows={3}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold focus:border-gold outline-none transition-all resize-none"
@@ -826,10 +829,10 @@ const CouncilManageEvents = () => {
                       required
                       value={standingForm.year}
                       onChange={(e) =>
-                        setStandingForm({
-                          ...standingForm,
+                        setStandingForm((prev) => ({
+                          ...prev,
                           year: e.target.value,
-                        })
+                        }))
                       }
                       className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold outline-none text-sm"
                       placeholder="e.g. 2025"
@@ -846,10 +849,10 @@ const CouncilManageEvents = () => {
                       min="1"
                       value={standingForm.position}
                       onChange={(e) =>
-                        setStandingForm({
-                          ...standingForm,
+                        setStandingForm((prev) => ({
+                          ...prev,
                           position: e.target.value,
-                        })
+                        }))
                       }
                       className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold outline-none text-sm"
                       placeholder="e.g. 1"
@@ -864,10 +867,10 @@ const CouncilManageEvents = () => {
                       step="0.01"
                       value={standingForm.totalPoints}
                       onChange={(e) =>
-                        setStandingForm({
-                          ...standingForm,
+                        setStandingForm((prev) => ({
+                          ...prev,
                           totalPoints: e.target.value,
-                        })
+                        }))
                       }
                       className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold focus:border-gold outline-none text-sm"
                       placeholder="e.g. 150"
@@ -953,19 +956,12 @@ const CouncilManageEvents = () => {
                               }`}
                             >
                               {s.position === 1
-                                ? "🥇"
+                                ? "🥇 1st"
                                 : s.position === 2
-                                  ? "🥈"
+                                  ? "🥈 2nd"
                                   : s.position === 3
-                                    ? "🥉"
+                                    ? "🥉 3rd"
                                     : `#${s.position}`}
-                              {s.position === 1
-                                ? "1st"
-                                : s.position === 2
-                                  ? "2nd"
-                                  : s.position === 3
-                                    ? "3rd"
-                                    : `${s.position}th`}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-gray-600 font-medium">
