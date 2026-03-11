@@ -47,50 +47,86 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Diagnostic endpoint — remove after debugging
-app.get("/api/debug/env", (_req, res) => {
-  res.json({
-    SUPABASE_URL: process.env.SUPABASE_URL ? "✅ set" : "❌ MISSING",
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
-      ? `✅ set (starts with ${process.env.SUPABASE_SERVICE_ROLE_KEY.slice(0, 10)}…)`
-      : "❌ MISSING",
-    DATABASE_URL: process.env.DATABASE_URL ? "✅ set" : "❌ MISSING",
-    NODE_ENV: process.env.NODE_ENV ?? "not set",
-    PORT: process.env.PORT ?? "not set",
-  });
-});
-
-// Token debug endpoint — remove after debugging
-// Send: GET /api/debug/token with Authorization: Bearer <your-token>
-app.get("/api/debug/token", async (req, res) => {
-  const { supabase } = await import("./config/supabase.js");
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.json({ error: "No Authorization header sent" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    return res.json({ error: "No token found after 'Bearer'" });
-  }
+// ============ DEBUG — REMOVE AFTER FIXING ============
+// Single comprehensive debug endpoint
+// GET /api/debug/full  (with Authorization: Bearer <token>)
+app.get("/api/debug/full", async (req, res) => {
+  const result = {
+    step: "init",
+    env: {
+      SUPABASE_URL: process.env.SUPABASE_URL ? "✅ set" : "❌ MISSING",
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
+        ? `✅ set (${process.env.SUPABASE_SERVICE_ROLE_KEY.length} chars)`
+        : "❌ MISSING",
+      DATABASE_URL: process.env.DATABASE_URL
+        ? `✅ set (host: ${process.env.DATABASE_URL.match(/@([^:]+)/)?.[1] ?? "?"})`
+        : "❌ MISSING",
+      NODE_ENV: process.env.NODE_ENV ?? "not set",
+    },
+    token: null,
+    supabase: null,
+    db: null,
+    userById: null,
+    userByEmail: null,
+    userCount: null,
+    error: null,
+  };
 
   try {
+    // --- Token ---
+    result.step = "token";
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
+    result.token = token
+      ? { length: token.length, preview: `${token.slice(0, 20)}…${token.slice(-10)}` }
+      : "❌ No Bearer token in Authorization header";
+    if (!token) return res.json(result);
+
+    // --- Supabase auth ---
+    result.step = "supabase-getUser";
+    const { supabase } = await import("./config/supabase.js");
     const { data, error } = await supabase.auth.getUser(token);
-    return res.json({
-      tokenPreview: `${token.slice(0, 20)}…${token.slice(-10)}`,
-      tokenLength: token.length,
-      supabaseError: error?.message ?? null,
-      userId: data?.user?.id ?? null,
-      email: data?.user?.email ?? null,
+    result.supabase = error
+      ? { error: error.message }
+      : { userId: data.user.id, email: data.user.email };
+    if (error) return res.json(result);
+
+    const userId = data.user.id;
+    const email = data.user.email;
+
+    // --- DB connectivity ---
+    result.step = "db-connect";
+    const { prisma } = await import("./config/prisma.js");
+    const ping = await prisma.$queryRaw`SELECT 1 as ok`;
+    result.db = ping ? "✅ connected" : "❌ no response";
+
+    // --- User lookup by ID ---
+    result.step = "prisma-findById";
+    result.userById = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true },
     });
+
+    // --- User lookup by email ---
+    result.step = "prisma-findByEmail";
+    result.userByEmail = email
+      ? await prisma.user.findUnique({
+          where: { email },
+          select: { id: true, email: true, role: true },
+        })
+      : null;
+
+    // --- Total users ---
+    result.step = "prisma-count";
+    result.userCount = await prisma.user.count();
+
+    result.step = "done";
   } catch (e) {
-    return res.json({
-      tokenPreview: `${token.slice(0, 20)}…${token.slice(-10)}`,
-      tokenLength: token.length,
-      thrownError: e.message,
-    });
+    result.error = { message: e.message, failedAtStep: result.step, stack: e.stack?.split("\n").slice(0, 5) };
   }
+
+  return res.json(result);
 });
+// ============ END DEBUG ============
 
 export default app;

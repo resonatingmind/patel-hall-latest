@@ -2,41 +2,55 @@ import { supabase } from "../config/supabase.js";
 import { prisma } from "../config/prisma.js";
 
 const authenticate = async (req, res, next) => {
+  let step = "init";
   try {
+    step = "read-header";
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
+      console.error("[AUTH] No Authorization header");
       return res.status(401).json({ message: "Missing Authorization header" });
     }
 
     const token = authHeader.split(" ")[1];
+    console.log(`[AUTH] Token received, length=${token?.length}`);
 
+    step = "supabase-getUser";
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      console.error("Supabase getUser failed:", error?.message ?? "no user returned");
+      console.error(`[AUTH] Supabase getUser failed at step '${step}':`, error?.message ?? "no user returned");
       return res.status(401).json({ message: "Invalid token" });
     }
+
+    console.log(`[AUTH] Supabase user OK: id=${data.user.id}, email=${data.user.email}`);
 
     // Attach Supabase auth user to request
     req.user = data.user;
 
+    step = "prisma-findById";
+    console.log(`[AUTH] Looking up Prisma user by id=${data.user.id}`);
     // Fetch user (and role) from Prisma DB using the Supabase auth user id
     let dbUser = await prisma.user.findUnique({
       where: { id: data.user.id },
       select: { role: true },
     });
+    console.log(`[AUTH] Prisma findById result:`, dbUser);
 
     // Fallback: if no User found by Supabase UID, try email lookup.
     // This handles ID mismatches that can occur during bulk import
     // (Prisma User.id ≠ Supabase auth UID).
     if (!dbUser && data.user.email) {
+      step = "prisma-findByEmail";
+      console.log(`[AUTH] Not found by ID, trying email=${data.user.email}`);
       const emailUser = await prisma.user.findUnique({
         where: { email: data.user.email },
         select: { id: true, role: true },
       });
+      console.log(`[AUTH] Prisma findByEmail result:`, emailUser);
 
       if (emailUser && emailUser.id !== data.user.id) {
+        step = "prisma-syncId";
         // Auto-sync: update Prisma User ID + FK references to match Supabase UID
         try {
           await prisma.$transaction(async (tx) => {
@@ -45,10 +59,10 @@ const authenticate = async (req, res, next) => {
             await tx.$executeRaw`UPDATE "User" SET id = ${data.user.id} WHERE id = ${emailUser.id}`;
           });
           console.log(
-            `Synced Prisma User ID for ${data.user.email}: ${emailUser.id} → ${data.user.id}`,
+            `[AUTH] Synced Prisma User ID for ${data.user.email}: ${emailUser.id} → ${data.user.id}`,
           );
         } catch (syncErr) {
-          console.error("Failed to sync User ID:", syncErr);
+          console.error("[AUTH] Failed to sync User ID:", syncErr.message);
         }
         dbUser = { role: emailUser.role };
       }
@@ -56,20 +70,21 @@ const authenticate = async (req, res, next) => {
 
     if (!dbUser) {
       console.warn(
-        "Authenticated Supabase user has no corresponding Prisma user row:",
-        data.user.id,
+        `[AUTH] No Prisma user row for supabase id=${data.user.id}, email=${data.user.email}`,
       );
       return res
         .status(403)
         .json({ message: "User not found in application database" });
     }
 
+    console.log(`[AUTH] ✅ Authenticated: role=${dbUser.role}`);
     req.role = dbUser.role; // e.g. "ADMIN", "WARDEN", "STUDENT", ...
 
     next();
   } catch (err) {
-    console.error("Auth middleware error:", err);
-    res.status(401).json({ message: "Authentication failed" });
+    console.error(`[AUTH] ❌ EXCEPTION at step '${step}':`, err.message);
+    console.error(err.stack);
+    res.status(401).json({ message: "Authentication failed", debugStep: step, debugError: err.message });
   }
 };
 
