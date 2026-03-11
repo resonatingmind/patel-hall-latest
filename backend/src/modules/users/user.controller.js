@@ -7,6 +7,8 @@ import {
   updateAdministrativeMemberService,
   deleteAdministrativeMemberService,
   updateMyProfileService,
+  getWebTeamService,
+  getAdministrationPageService,
 } from "./user.service.js";
 import { prisma } from "../../config/prisma.js";
 
@@ -108,8 +110,11 @@ const createAdministrativeMember = async (req, res) => {
       firstName,
       lastName,
       position,
+      dept,
       phone,
       office,
+      image,
+      linkedin,
     } = req.body;
 
     if (!email || !role || !password || !firstName || !position) {
@@ -120,7 +125,7 @@ const createAdministrativeMember = async (req, res) => {
     }
 
     const normalizedRole = role.toUpperCase();
-    const allowedRoles = ["ADMIN", "WARDEN"];
+    const allowedRoles = ["ADMIN", "WARDEN", "OTHER"];
 
     if (!allowedRoles.includes(normalizedRole)) {
       return res.status(400).json({
@@ -138,8 +143,11 @@ const createAdministrativeMember = async (req, res) => {
         firstName,
         lastName: lastName || "",
         position,
+        dept: dept || null,
         phone: phone || null,
         office: office || null,
+        image: image || null,
+        linkedin: linkedin || null,
       },
     });
 
@@ -247,6 +255,30 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
+const getWebTeam = async (req, res) => {
+  try {
+    const members = await getWebTeamService();
+    res.status(200).json(members);
+  } catch (err) {
+    console.error("Error fetching web team:", err);
+    res.status(500).json({
+      message: err.message || "Failed to fetch web team members",
+    });
+  }
+};
+
+const getAdministrationPage = async (req, res) => {
+  try {
+    const members = await getAdministrationPageService();
+    res.status(200).json(members);
+  } catch (err) {
+    console.error("Error fetching administration page:", err);
+    res.status(500).json({
+      message: err.message || "Failed to fetch administration members",
+    });
+  }
+};
+
 export {
   createUser,
   bulkCreateUsers,
@@ -257,4 +289,6 @@ export {
   updateAdministrativeMember,
   deleteAdministrativeMember,
   updateMyProfile,
+  getWebTeam,
+  getAdministrationPage,
 };

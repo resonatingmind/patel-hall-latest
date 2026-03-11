@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+
 const Auth = () => {
   const { role } = useAuth();
   const [email, setEmail] = useState("");
@@ -35,15 +37,27 @@ const Auth = () => {
 
       console.log(data.user);
 
-      // AuthContext.onAuthStateChange will fire and fetch the DB role automatically.
-      // Navigate home — role-based redirects can be handled by ProtectedRoute.
+      // Fetch the user's role to determine redirect destination
+      try {
+        const res = await fetch(`${API_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
+        });
+        const userData = await res.json();
+        if (userData.role === "OTHER") {
+          navigate("/");
+          return;
+        }
+      } catch {
+        // If role fetch fails, default to portal
+      }
+
       navigate("/portal");
     } catch (error) {
       setMessage({ type: "error", text: error.message });
     } finally {
       setLoading(false);
     }
-  }; 
+  };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();

@@ -235,8 +235,7 @@ const WardenCouncil = () => {
                                                     {pos.description && <p className="text-xs text-gray-500 mt-1">{pos.description}</p>}
                                                 </div>
                                                 <button 
-                                                    onClick={() => handleDeletePosition(pos.id)}
-                                                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                    className="hidden text-gray-400 hover:text-red-500 transition-colors p-1"
                                                     title="Delete Position"
                                                 >
                                                     <MdDelete size={20} />

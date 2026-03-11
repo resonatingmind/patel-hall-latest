@@ -9,11 +9,19 @@ import {
   updateAdministrativeMember,
   deleteAdministrativeMember,
   updateMyProfile,
+  getWebTeam,
+  getAdministrationPage,
 } from "./user.controller.js";
 import authenticate from "../../middleware/auth.middleware.js";
 import authorize from "../../middleware/role.middleware.js";
 
 const router = express.Router();
+
+// Public: Get web team members (ADMIN role)
+router.get("/web-team", getWebTeam);
+
+// Public: Get administration members for the Administration page
+router.get("/administration-page", getAdministrationPage);
 
 // Any authenticated user can fetch their own profile
 router.get("/me", authenticate, getMe);

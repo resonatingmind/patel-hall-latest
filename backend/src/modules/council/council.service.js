@@ -6,10 +6,10 @@ export const getPositionsService = async () => {
     include: {
       studentPositions: {
         include: {
-          student: true
-        }
-      }
-    }
+          student: true,
+        },
+      },
+    },
   });
 };
 
@@ -18,15 +18,15 @@ export const createPositionService = async (name, description) => {
   return await prisma.hallPosition.create({
     data: {
       name,
-      description
-    }
+      description,
+    },
   });
 };
 
 // Delete a position
 export const deletePositionService = async (id) => {
   return await prisma.hallPosition.delete({
-    where: { id }
+    where: { id },
   });
 };
 
@@ -36,21 +36,21 @@ export const assignPositionService = async (studentId, positionId) => {
     // Check if the student exists
     const student = await tx.student.findUnique({
       where: { id: studentId },
-      include: { user: true }
+      include: { user: true },
     });
     if (!student) throw new Error("Student not found");
 
     // Check if the position exists
     const position = await tx.hallPosition.findUnique({
-      where: { id: positionId }
+      where: { id: positionId },
     });
     if (!position) throw new Error("Position not found");
 
     // Check if already assigned
     const existing = await tx.studentPosition.findUnique({
       where: {
-        studentId_positionId: { studentId, positionId }
-      }
+        studentId_positionId: { studentId, positionId },
+      },
     });
 
     if (existing) {
@@ -62,15 +62,19 @@ export const assignPositionService = async (studentId, positionId) => {
       data: {
         studentId,
         positionId,
-        startDate: new Date()
-      }
+        startDate: new Date(),
+      },
     });
 
     // Update the User role to COUNCIL
-    if (student.user.role !== "COUNCIL" && student.user.role !== "WARDEN" && student.user.role !== "ADMIN") {
+    if (
+      student.user.role !== "COUNCIL" &&
+      student.user.role !== "WARDEN" &&
+      student.user.role !== "ADMIN"
+    ) {
       await tx.user.update({
         where: { id: student.userId },
-        data: { role: "COUNCIL" }
+        data: { role: "COUNCIL" },
       });
     }
 
@@ -84,37 +88,78 @@ export const unassignPositionService = async (studentId, positionId) => {
     // Find the active student position
     const studentPosition = await tx.studentPosition.findUnique({
       where: {
-        studentId_positionId: { studentId, positionId }
-      }
+        studentId_positionId: { studentId, positionId },
+      },
     });
 
     if (!studentPosition) throw new Error("Position assignment not found");
 
     // Remove the assignment
     await tx.studentPosition.delete({
-      where: { id: studentPosition.id }
+      where: { id: studentPosition.id },
     });
 
     // Check if the student holds any other active positions
     const otherActivePositions = await tx.studentPosition.findFirst({
-      where: { studentId }
+      where: { studentId },
     });
 
     // If no other active positions, revert role to STUDENT
     if (!otherActivePositions) {
       const student = await tx.student.findUnique({
         where: { id: studentId },
-        include: { user: true }
+        include: { user: true },
       });
       // only demote if they are COUNCIL (not WARDEN or ADMIN)
       if (student.user.role === "COUNCIL") {
         await tx.user.update({
-            where: { id: student.userId },
-            data: { role: "STUDENT" }
+          where: { id: student.userId },
+          data: { role: "STUDENT" },
         });
       }
     }
 
     return studentPosition;
   });
+};
+
+// Public: Get all council members (positions with assigned students)
+export const getCouncilMembersService = async () => {
+  const positions = await prisma.hallPosition.findMany({
+    include: {
+      studentPositions: {
+        include: {
+          student: {
+            include: {
+              user: {
+                select: { email: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Flatten into a list of members with their position info
+  const members = [];
+  for (const position of positions) {
+    for (const sp of position.studentPositions) {
+      members.push({
+        id: sp.id,
+        positionName: position.name,
+        positionDescription: position.description,
+        name: `${sp.student.firstName} ${sp.student.lastName}`.trim(),
+        firstName: sp.student.firstName,
+        lastName: sp.student.lastName,
+        rollNumber: sp.student.rollNumber,
+        department: sp.student.department,
+        email: sp.student.user?.email || null,
+        image: sp.student.image || null,
+        linkedin: sp.student.linkedin || null,
+      });
+    }
+  }
+
+  return members;
 };

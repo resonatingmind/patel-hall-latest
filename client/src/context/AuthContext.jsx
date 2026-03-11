@@ -32,31 +32,33 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  console.log("Setting data")
-  const initSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+    console.log("Setting data");
+    const initSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-  setUser(session?.user ?? null);
+      setUser(session?.user ?? null);
 
-  if (session) {
-    const cachedRole = localStorage.getItem("user_role");
+      if (session) {
+        const cachedRole = localStorage.getItem("user_role");
 
-    if (cachedRole) {
-      setRole(cachedRole);
-    } else {
-      const dbRole = await fetchRoleFromAPI(session);
-      setRole(dbRole);
-    }
-  }
+        if (cachedRole) {
+          setRole(cachedRole);
+        } else {
+          const dbRole = await fetchRoleFromAPI(session);
+          setRole(dbRole);
+        }
+      }
 
-  setLoading(false);
-};
+      setLoading(false);
+    };
 
-  initSession();
+    initSession();
 
-  const { data: { subscription } } =
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
 
       if (session) {
@@ -67,8 +69,8 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-  return () => subscription.unsubscribe();
-}, []);
+    return () => subscription.unsubscribe();
+  }, []);
 
   const value = {
     user,
@@ -77,6 +79,8 @@ export const AuthProvider = ({ children }) => {
     hasRole: (requiredRole) => {
       if (!user || !role) return false;
       if (role === "ADMIN") return true;
+      // OTHER role (staff members) only get basic access, no portal access
+      if (role === "OTHER") return false;
       if (requiredRole === "STUDENT") return true; // every authenticated user
       if (role === "WARDEN") return true;
       if (

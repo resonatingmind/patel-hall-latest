@@ -104,12 +104,12 @@ const getUsersByRoleService = async (role) => {
   }));
 };
 
-// Get all administrative members (ADMIN and WARDEN roles)
+// Get all administrative members (ADMIN, WARDEN, and OTHER roles)
 const getAllAdministrativeMembersService = async () => {
   const users = await prisma.user.findMany({
     where: {
       role: {
-        in: ["ADMIN", "WARDEN"],
+        in: ["ADMIN", "WARDEN", "OTHER"],
       },
     },
     include: {
@@ -128,8 +128,11 @@ const getAllAdministrativeMembersService = async () => {
     firstName: user.administration?.firstName || "",
     lastName: user.administration?.lastName || "",
     position: user.administration?.position || "",
+    dept: user.administration?.dept || null,
     phone: user.administration?.phone || null,
     office: user.administration?.office || null,
+    image: user.administration?.image || null,
+    linkedin: user.administration?.linkedin || null,
     name: user.administration
       ? `${user.administration.firstName} ${user.administration.lastName}`.trim()
       : null,
@@ -138,7 +141,17 @@ const getAllAdministrativeMembersService = async () => {
 
 // Update an administrative member
 const updateAdministrativeMemberService = async (userId, updateData) => {
-  const { firstName, lastName, position, phone, office, role } = updateData;
+  const {
+    firstName,
+    lastName,
+    position,
+    dept,
+    phone,
+    office,
+    role,
+    image,
+    linkedin,
+  } = updateData;
 
   // Update user role if provided
   if (role) {
@@ -155,16 +168,22 @@ const updateAdministrativeMemberService = async (userId, updateData) => {
       firstName: firstName || undefined,
       lastName: lastName || undefined,
       position: position || undefined,
+      dept: dept !== undefined ? dept : undefined,
       phone: phone || undefined,
       office: office || undefined,
+      image: image !== undefined ? image : undefined,
+      linkedin: linkedin !== undefined ? linkedin : undefined,
     },
     create: {
       id: userId,
       firstName: firstName || "",
       lastName: lastName || "",
       position: position || "",
+      dept: dept || null,
       phone: phone || null,
       office: office || null,
+      image: image || null,
+      linkedin: linkedin || null,
     },
   });
 
@@ -237,6 +256,53 @@ const updateMyProfileService = async (userId, updateData) => {
   return updated;
 };
 
+// Get all administration members for the public Administration page
+const getAdministrationPageService = async () => {
+  const users = await prisma.user.findMany({
+    where: {
+      role: { in: ["ADMIN", "WARDEN", "OTHER"] },
+    },
+    include: { administration: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return users
+    .filter((user) => user.administration)
+    .map((user) => ({
+      id: user.id,
+      firstName: user.administration.firstName,
+      lastName: user.administration.lastName,
+      name: `${user.administration.firstName} ${user.administration.lastName}`.trim(),
+      role: user.role,
+      position: user.administration.position,
+      dept: user.administration.dept || null,
+      phone: user.administration.phone || null,
+      office: user.administration.office || null,
+      image: user.administration.image || null,
+      linkedin: user.administration.linkedin || null,
+    }));
+};
+
+// Get web team members (ADMIN role users with administration profile)
+const getWebTeamService = async () => {
+  const users = await prisma.user.findMany({
+    where: { role: "ADMIN" },
+    include: { administration: true },
+  });
+
+  return users
+    .filter((user) => user.administration)
+    .map((user) => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.administration.firstName,
+      lastName: user.administration.lastName,
+      position: user.administration.position,
+      image: user.administration.image || null,
+      linkedin: user.administration.linkedin || null,
+    }));
+};
+
 export {
   createUserService,
   bulkCreateUsersService,
@@ -246,4 +312,6 @@ export {
   updateAdministrativeMemberService,
   deleteAdministrativeMemberService,
   updateMyProfileService,
+  getWebTeamService,
+  getAdministrationPageService,
 };

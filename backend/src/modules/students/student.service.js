@@ -66,7 +66,19 @@ export const createStudentService = async (studentData) => {
   });
   let userId;
   if (existingUser) {
-    userId = existingUser.id;
+    // If Prisma User ID doesn't match Supabase auth UID, sync them
+    // so the auth middleware can find this user when they log in
+    if (existingUser.id !== authUser.id) {
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`UPDATE "Student" SET "userId" = ${authUser.id} WHERE "userId" = ${existingUser.id}`;
+        await tx.$executeRaw`UPDATE "Administration" SET id = ${authUser.id} WHERE id = ${existingUser.id}`;
+        await tx.$executeRaw`UPDATE "User" SET id = ${authUser.id} WHERE id = ${existingUser.id}`;
+      });
+      console.log(
+        `Synced Prisma User ID for ${authUser.email}: ${existingUser.id} → ${authUser.id}`,
+      );
+    }
+    userId = authUser.id;
   } else {
     await prisma.user.create({
       data: {
@@ -155,6 +167,7 @@ export const updateStudentService = async (studentId, updateData) => {
 export const deleteStudentService = async (studentId) => {
   const student = await prisma.student.findUnique({
     where: { id: studentId },
+    include: { user: true },
   });
 
   if (!student) {
@@ -162,7 +175,9 @@ export const deleteStudentService = async (studentId) => {
   }
 
   const userId = student.userId;
+  const email = student.user?.email;
 
+  // Delete from Prisma first
   await prisma.student.delete({
     where: { id: studentId },
   });
@@ -171,9 +186,25 @@ export const deleteStudentService = async (studentId) => {
     where: { id: userId },
   });
 
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-  if (error) {
-    throw new Error(`Failed to delete user from auth: ${error.message}`);
+  // Delete from Supabase Auth - try stored ID first, fall back to email lookup
+  let { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+  if (error && email) {
+    const { data: listData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers();
+    if (!listError && listData?.users) {
+      const supabaseUser = listData.users.find((u) => u.email === email);
+      if (supabaseUser) {
+        const { error: retryError } = await supabaseAdmin.auth.admin.deleteUser(
+          supabaseUser.id,
+        );
+        if (retryError) {
+          throw new Error(
+            `Failed to delete user from auth: ${retryError.message}`,
+          );
+        }
+      }
+    }
   }
 
   return { success: true };
@@ -183,20 +214,51 @@ export const deleteStudentService = async (studentId) => {
 export const resetStudentPasswordService = async (studentId) => {
   const student = await prisma.student.findUnique({
     where: { id: studentId },
+    include: { user: true },
   });
 
   if (!student) {
     throw new Error("Student not found");
   }
 
-  const { userId, rollNumber } = student;
+  if (!student.user) {
+    throw new Error("User account not found for this student");
+  }
 
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-    password: rollNumber,
-  });
+  const { rollNumber } = student;
 
+  // Try resetting using stored userId first
+  let { error } = await supabaseAdmin.auth.admin.updateUserById(
+    student.userId,
+    {
+      password: rollNumber,
+    },
+  );
+
+  // If stored userId doesn't match any Supabase user (ID mismatch from bulk import),
+  // fall back to looking up the Supabase auth user by email
   if (error) {
-    throw new Error(`Failed to reset password: ${error.message}`);
+    const { data: listData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers();
+    if (listError) throw new Error(`Auth lookup failed: ${listError.message}`);
+
+    const supabaseUser = listData.users.find(
+      (u) => u.email === student.user.email,
+    );
+    if (!supabaseUser) {
+      throw new Error("User not found in authentication system");
+    }
+
+    const { error: retryError } = await supabaseAdmin.auth.admin.updateUserById(
+      supabaseUser.id,
+      {
+        password: rollNumber,
+      },
+    );
+
+    if (retryError) {
+      throw new Error(`Failed to reset password: ${retryError.message}`);
+    }
   }
 
   return { success: true };

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   MdAdminPanelSettings,
   MdClose,
@@ -10,11 +10,15 @@ import {
   MdPhone,
   MdBusiness,
   MdArrowBack,
+  MdImage,
+  MdLink,
+  MdCloudUpload,
+  MdCameraAlt,
 } from "react-icons/md";
-import { useAuth } from '../../../context/AuthContext';
-import { supabase } from '../../../lib/supabaseClient';
-import axios from 'axios';
-import { toast } from 'sonner';
+import { useAuth } from "../../../context/AuthContext";
+import { supabase } from "../../../lib/supabaseClient";
+import axios from "axios";
+import { toast } from "sonner";
 
 const AdminAdministrativeMembers = () => {
   const { user } = useAuth();
@@ -26,15 +30,21 @@ const AdminAdministrativeMembers = () => {
   const [administrativeMembers, setAdministrativeMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: 'ADMIN',
-    position: '',
-    phone: '',
-    office: '',
-    password: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "ADMIN",
+    position: "",
+    dept: "",
+    phone: "",
+    office: "",
+    password: "",
+    image: "",
+    linkedin: "",
   });
 
   useEffect(() => {
@@ -44,18 +54,20 @@ const AdminAdministrativeMembers = () => {
 
   useEffect(() => {
     if (isAddModalOpen || isEditModalOpen || isDeleteModalOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
     }
 
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
     };
   }, [isAddModalOpen, isEditModalOpen, isDeleteModalOpen]);
 
   const getToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     return session?.access_token || null;
   };
 
@@ -69,13 +81,10 @@ const AdminAdministrativeMembers = () => {
         return;
       }
 
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await axios.get(
-        `${API_BASE}/api/users/administration`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await axios.get(`${API_BASE}/api/users/administration`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setAdministrativeMembers(response.data || []);
     } catch (error) {
       console.error("Failed to fetch administrative members:", error);
@@ -87,21 +96,55 @@ const AdminAdministrativeMembers = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB.");
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadAdminImage = async (file, memberId) => {
+    const fileExt = file.name.split(".").pop();
+    const filePath = `avatar/${memberId}_${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage
+      .from("Patelhall")
+      .upload(filePath, file, { upsert: true });
+    if (uploadError)
+      throw new Error(`Image upload failed: ${uploadError.message}`);
+    const { data } = supabase.storage.from("Patelhall").getPublicUrl(filePath);
+    return data.publicUrl;
   };
 
   const handleEditClick = (member) => {
     setSelectedMember(member);
     setFormData({
-      firstName: member.firstName || '',
-      lastName: member.lastName || '',
-      email: member.email || '',
-      role: member.role || 'ADMIN',
-      position: member.position || '',
-      phone: member.phone || '',
-      office: member.office || '',
-      password: '',
+      firstName: member.firstName || "",
+      lastName: member.lastName || "",
+      email: member.email || "",
+      role: member.role || "ADMIN",
+      position: member.position || "",
+      dept: member.dept || "",
+      phone: member.phone || "",
+      office: member.office || "",
+      password: "",
+      image: member.image || "",
+      linkedin: member.linkedin || "",
     });
+    setImageFile(null);
+    setImagePreview(member.image || null);
     setIsEditModalOpen(true);
   };
 
@@ -126,7 +169,12 @@ const AdminAdministrativeMembers = () => {
         return;
       }
 
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+      let imageUrl = formData.image;
+      if (imageFile) {
+        imageUrl = await uploadAdminImage(imageFile, selectedMember.id);
+      }
 
       await axios.put(
         `${API_BASE}/api/users/administration/${selectedMember.id}`,
@@ -134,32 +182,43 @@ const AdminAdministrativeMembers = () => {
           firstName: formData.firstName,
           lastName: formData.lastName,
           position: formData.position,
+          dept: formData.dept,
           phone: formData.phone,
           office: formData.office,
           role: formData.role,
+          image: imageUrl,
+          linkedin: formData.linkedin,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       toast.success("Administrative member updated successfully.");
       setIsEditModalOpen(false);
       setSelectedMember(null);
+      setImageFile(null);
+      setImagePreview(null);
       setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        role: 'ADMIN',
-        position: '',
-        phone: '',
-        office: '',
-        password: '',
+        firstName: "",
+        lastName: "",
+        email: "",
+        role: "ADMIN",
+        position: "",
+        dept: "",
+        phone: "",
+        office: "",
+        password: "",
+        image: "",
+        linkedin: "",
       });
       fetchAdministrativeMembers();
     } catch (error) {
       console.error("Failed to update administrative member:", error);
-      const message = error.response?.data?.message || error.message || "Failed to update administrative member.";
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update administrative member.";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -177,13 +236,13 @@ const AdminAdministrativeMembers = () => {
         return;
       }
 
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
       await axios.delete(
         `${API_BASE}/api/users/administration/${selectedMember.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       toast.success("Administrative member deleted successfully.");
@@ -192,7 +251,10 @@ const AdminAdministrativeMembers = () => {
       fetchAdministrativeMembers();
     } catch (error) {
       console.error("Failed to delete administrative member:", error);
-      const message = error.response?.data?.message || error.message || "Failed to delete administrative member.";
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to delete administrative member.";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -202,7 +264,12 @@ const AdminAdministrativeMembers = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.email || !formData.firstName || !formData.position || !formData.password) {
+    if (
+      !formData.email ||
+      !formData.firstName ||
+      !formData.position ||
+      !formData.password
+    ) {
       toast.error("Please fill all required fields.");
       return;
     }
@@ -215,32 +282,59 @@ const AdminAdministrativeMembers = () => {
         return;
       }
 
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-      await axios.post(
+      // First create the member, then upload image if provided
+      const response = await axios.post(
         `${API_BASE}/api/users/administration/create`,
-        formData,
+        { ...formData, image: null },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
+
+      // If an image file was selected, upload it and update the member
+      if (imageFile && response.data?.user?.id) {
+        try {
+          const imageUrl = await uploadAdminImage(
+            imageFile,
+            response.data.user.id,
+          );
+          await axios.put(
+            `${API_BASE}/api/users/administration/${response.data.user.id}`,
+            { image: imageUrl },
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+        } catch (imgErr) {
+          console.error("Image upload failed:", imgErr);
+          toast.error("Member created but image upload failed.");
+        }
+      }
 
       toast.success("Administrative member added successfully.");
       setIsAddModalOpen(false);
+      setImageFile(null);
+      setImagePreview(null);
       setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        role: 'ADMIN',
-        position: '',
-        phone: '',
-        office: '',
-        password: '',
+        firstName: "",
+        lastName: "",
+        email: "",
+        role: "ADMIN",
+        position: "",
+        dept: "",
+        phone: "",
+        office: "",
+        password: "",
+        image: "",
+        linkedin: "",
       });
       fetchAdministrativeMembers();
     } catch (error) {
       console.error("Failed to add administrative member:", error);
-      const message = error.response?.data?.message || error.message || "Failed to add administrative member.";
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to add administrative member.";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -259,7 +353,8 @@ const AdminAdministrativeMembers = () => {
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat blur-xs scale-110"
                     style={{
-                      backgroundImage: 'linear-gradient(rgba(74, 0, 0, 0.85) 0%, rgba(16, 22, 34, 0.6) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZ_AOtFhZRsAj-qahqn3QKkG8gccl-CNDhqYVLnebmMCt4_PP-td1cAcidBbiOXkWu_h7OMU7kzgkImTqVC8zZP8d_T_87XpaCyxy2Tl7TFHFpRaAg1wuOWYGtHbQf8mF87r1IYMPUFmssSqGfTgZr6RhAyd2QZ1PrmE-wmGM6y-M6bsd1GQS6ddpMDtN7vDyJ6AZgQHFexef8fTL3h9tudRzRQfk76Tuc9ThWRHem9q0Q18vw7ONV3ygPuOEyKWOjQjaxwEwjup4")'
+                      backgroundImage:
+                        'linear-gradient(rgba(74, 0, 0, 0.85) 0%, rgba(16, 22, 34, 0.6) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZ_AOtFhZRsAj-qahqn3QKkG8gccl-CNDhqYVLnebmMCt4_PP-td1cAcidBbiOXkWu_h7OMU7kzgkImTqVC8zZP8d_T_87XpaCyxy2Tl7TFHFpRaAg1wuOWYGtHbQf8mF87r1IYMPUFmssSqGfTgZr6RhAyd2QZ1PrmE-wmGM6y-M6bsd1GQS6ddpMDtN7vDyJ6AZgQHFexef8fTL3h9tudRzRQfk76Tuc9ThWRHem9q0Q18vw7ONV3ygPuOEyKWOjQjaxwEwjup4")',
                     }}
                   ></div>
                   <div className="flex flex-col gap-4 relative z-10 max-w-4xl mx-auto px-4">
@@ -291,9 +386,12 @@ const AdminAdministrativeMembers = () => {
           <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
             <div>
               <h3 className="text-primary text-2xl font-serif font-bold flex items-center gap-2">
-                <MdAdminPanelSettings className="text-gold" /> Administrative Members
+                <MdAdminPanelSettings className="text-gold" /> Administrative
+                Members
               </h3>
-              <p className="text-gray-500 text-sm mt-1">Manage wardens and administrative staff.</p>
+              <p className="text-gray-500 text-sm mt-1">
+                Manage wardens and administrative staff.
+              </p>
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
@@ -311,19 +409,38 @@ const AdminAdministrativeMembers = () => {
             ) : administrativeMembers.length === 0 ? (
               <div className="p-12 text-center text-gray-400">
                 <MdPerson size={48} className="mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">No administrative members found.</p>
-                <p className="text-sm mt-2">Click "Add Member" to create one.</p>
+                <p className="text-lg font-medium">
+                  No administrative members found.
+                </p>
+                <p className="text-sm mt-2">
+                  Click "Add Member" to create one.
+                </p>
               </div>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-primary/5 border-b border-primary/10">
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Name</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Email</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Position</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Role</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Contact</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Actions</th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Member
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Email
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Position
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Dept
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Role
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Contact
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -333,8 +450,35 @@ const AdminAdministrativeMembers = () => {
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors group"
                     >
                       <td className="p-5">
-                        <div className="font-bold text-gray-800 text-lg group-hover:text-primary transition-colors">
-                          {member.name || `${member.firstName} ${member.lastName}`.trim() || 'N/A'}
+                        <div className="flex items-center gap-3">
+                          {member.image ? (
+                            <img
+                              src={member.image}
+                              alt={member.name || "Member"}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <MdPerson className="text-primary" size={20} />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold text-gray-800 text-lg group-hover:text-primary transition-colors">
+                              {member.name ||
+                                `${member.firstName} ${member.lastName}`.trim() ||
+                                "N/A"}
+                            </div>
+                            {member.linkedin && (
+                              <a
+                                href={member.linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 mt-0.5"
+                              >
+                                <MdLink size={12} /> LinkedIn
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="p-5">
@@ -344,14 +488,23 @@ const AdminAdministrativeMembers = () => {
                         </div>
                       </td>
                       <td className="p-5">
-                        <div className="font-medium text-gray-700">{member.position || 'N/A'}</div>
+                        <div className="font-medium text-gray-700">
+                          {member.position || "N/A"}
+                        </div>
+                      </td>
+                      <td className="p-5">
+                        <div className="font-medium text-gray-600 text-sm">
+                          {member.dept || "—"}
+                        </div>
                       </td>
                       <td className="p-5">
                         <div
                           className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                            member.role === 'ADMIN'
-                              ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                              : 'bg-blue-100 text-blue-700 border border-blue-200'
+                            member.role === "ADMIN"
+                              ? "bg-purple-100 text-purple-700 border border-purple-200"
+                              : member.role === "OTHER"
+                                ? "bg-green-100 text-green-700 border border-green-200"
+                                : "bg-blue-100 text-blue-700 border border-blue-200"
                           }`}
                         >
                           {member.role}
@@ -409,7 +562,9 @@ const AdminAdministrativeMembers = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-              <h3 className="text-xl font-bold font-serif text-primary">Add Administrative Member</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Add Administrative Member
+              </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
                 className="cursor-pointer text-gray-400 hover:text-red-500"
@@ -525,6 +680,66 @@ const AdminAdministrativeMembers = () => {
                     placeholder="Set an initial password"
                   />
                 </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Profile Image
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50 flex-shrink-0">
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <MdPerson className="text-gray-300" size={36} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        id="add-member-image"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document.getElementById("add-member-image")?.click()
+                        }
+                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <MdCameraAlt size={16} />
+                        {imageFile ? "Change Image" : "Upload Image"}
+                      </button>
+                      {imageFile && (
+                        <p className="text-xs text-green-600 mt-1 truncate">
+                          {imageFile.name}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        JPG, PNG. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    name="linkedin"
+                    value={formData.linkedin}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                    placeholder="https://linkedin.com/in/username"
+                  />
+                </div>
               </div>
               <div className="mt-8 flex justify-end gap-2 flex-shrink-0">
                 <button
@@ -553,7 +768,9 @@ const AdminAdministrativeMembers = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-              <h3 className="text-xl font-bold font-serif text-primary">Edit Administrative Member</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Edit Administrative Member
+              </h3>
               <button
                 onClick={() => {
                   setIsEditModalOpen(false);
@@ -601,7 +818,9 @@ const AdminAdministrativeMembers = () => {
                     disabled
                     className="w-full px-4 py-2 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Email cannot be changed
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
@@ -615,6 +834,7 @@ const AdminAdministrativeMembers = () => {
                   >
                     <option value="ADMIN">ADMIN</option>
                     <option value="WARDEN">WARDEN</option>
+                    <option value="OTHER">OTHER (Staff)</option>
                   </select>
                 </div>
                 <div>
@@ -629,6 +849,19 @@ const AdminAdministrativeMembers = () => {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                     placeholder="Warden, Assistant Warden, Caretaker, etc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    name="dept"
+                    value={formData.dept}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                    placeholder="e.g. CSE, EE, ME"
                   />
                 </div>
                 <div>
@@ -654,6 +887,64 @@ const AdminAdministrativeMembers = () => {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                     placeholder="e.g. Patel Hall Office"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Profile Image
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50 flex-shrink-0">
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <MdPerson className="text-gray-300" size={36} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <MdCameraAlt size={16} />
+                        {imageFile ? "Change Image" : "Upload Image"}
+                      </button>
+                      {imageFile && (
+                        <p className="text-xs text-green-600 mt-1 truncate">
+                          {imageFile.name}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        JPG, PNG. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    name="linkedin"
+                    value={formData.linkedin}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                    placeholder="https://linkedin.com/in/username"
                   />
                 </div>
               </div>
@@ -687,7 +978,9 @@ const AdminAdministrativeMembers = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-xl font-bold font-serif text-primary">Delete Member</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Delete Member
+              </h3>
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);
@@ -707,7 +1000,8 @@ const AdminAdministrativeMembers = () => {
                 ?
               </p>
               <p className="text-sm text-red-600 mb-6">
-                This action cannot be undone. The member will lose access to the portal immediately.
+                This action cannot be undone. The member will lose access to the
+                portal immediately.
               </p>
               <div className="flex justify-end gap-2">
                 <button
@@ -739,4 +1033,3 @@ const AdminAdministrativeMembers = () => {
 };
 
 export default AdminAdministrativeMembers;
-

@@ -17,6 +17,7 @@ import ParticipationLog from "../pages/portals/member/ParticipationLog";
 import Batch from "../pages/portals/member/Batch";
 import SubmitGrievance from "../pages/portals/member/SubmitGrievance";
 import NotFound from "../pages/NotFound";
+import WebTeam from "../pages/WebTeam";
 import WardenStudentDatabase from "../pages/portals/warden/WardenStudentDatabase";
 import WardenCouncil from "../pages/portals/warden/WardenCouncil";
 import WardenAlumni from "../pages/portals/warden/WardenAlumni";
@@ -31,7 +32,7 @@ import CouncilGrievance from "../pages/portals/council/CouncilGrievance";
 import CouncilEventDetails from "../pages/portals/council/CouncilEventDetails";
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
 
   return (
     <Routes>
@@ -43,31 +44,59 @@ const AppRoutes = () => {
       <Route path="/initiatives" element={<Initiatives />} />
       <Route
         path="/login"
-        element={!user ? <Auth /> : <Navigate to="/portal" replace />}
+        element={
+          !user ? (
+            <Auth />
+          ) : (
+            <Navigate to={role === "OTHER" ? "/" : "/portal"} replace />
+          )
+        }
       />
       <Route path="/administration" element={<Administration />} />
       <Route path="/about" element={<About />} />
       <Route path="/council" element={<Council />} />
+      <Route path="/team" element={<WebTeam />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/portal" element={<Portal />} />
         <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="/portal/participation-log" element={<ParticipationLog />} />
+        <Route
+          path="/portal/participation-log"
+          element={<ParticipationLog />}
+        />
         <Route path="/portal/batch" element={<Batch />} />
         <Route path="/portal/submit-grievance" element={<SubmitGrievance />} />
-        <Route path="/portal/student-database" element={<WardenStudentDatabase />} />
+        <Route
+          path="/portal/student-database"
+          element={<WardenStudentDatabase />}
+        />
         <Route path="/portal/council" element={<WardenCouncil />} />
         <Route path="/portal/alumni" element={<WardenAlumni />} />
         <Route path="/portal/grievance" element={<WardenGrievance />} />
-        <Route path="/portal/admin/student-database" element={<AdminStudentDatabase />} />
-        <Route path="/portal/admin/administration" element={<AdminAdministrativeMembers />} />
-        <Route path="/portal/council/manage-events" element={<CouncilManageEvents />} />
-        <Route path="/portal/council/manage-events/:id" element={<CouncilEventDetails />} />
+        <Route
+          path="/portal/admin/student-database"
+          element={<AdminStudentDatabase />}
+        />
+        <Route
+          path="/portal/admin/administration"
+          element={<AdminAdministrativeMembers />}
+        />
+        <Route
+          path="/portal/council/manage-events"
+          element={<CouncilManageEvents />}
+        />
+        <Route
+          path="/portal/council/manage-events/:id"
+          element={<CouncilEventDetails />}
+        />
         <Route path="/events/:id" element={<CouncilEventDetails />} />
         <Route path="/portal/council/batch" element={<CouncilBatch />} />
         <Route path="/portal/council/alumni" element={<CouncilAlumni />} />
-        <Route path="/portal/council/grievance" element={<CouncilGrievance />} />
+        <Route
+          path="/portal/council/grievance"
+          element={<CouncilGrievance />}
+        />
       </Route>
 
       {/* Example of Role Specific Route */}

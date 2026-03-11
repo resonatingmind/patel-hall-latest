@@ -11,8 +11,9 @@ import {
   MdPerson,
   MdEdit,
   MdLogout,
-  MdSchool,
+  MdSchool
 } from "react-icons/md";
+import { FaLinkedin } from "react-icons/fa";
 import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
 import { supabase } from "../../../lib/supabaseClient";
