@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   MdArrowBack,
   MdSearch,
@@ -12,17 +12,20 @@ import {
   MdEdit,
   MdDelete,
   MdLockReset,
+  MdCameraAlt,
 } from "react-icons/md";
-import { useAuth } from '../../../context/AuthContext';
-import { supabase } from '../../../lib/supabaseClient';
-import axios from 'axios';
-import { toast } from 'sonner';
+import { useAuth } from "../../../context/AuthContext";
+import { supabase } from "../../../lib/supabaseClient";
+import axios from "axios";
+import { toast } from "sonner";
 
 const AdminStudentDatabase = () => {
   const { user } = useAuth();
 
   const getToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     return session?.access_token || null;
   };
 
@@ -32,37 +35,55 @@ const AdminStudentDatabase = () => {
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState({
-    block: 'All',
-    dept: 'All',
-    batch: 'All',
-    search: ''
+    block: "All",
+    dept: "All",
+    batch: "All",
+    search: "",
   });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] =
+    useState(false);
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    rollNumber: '',
-    email: '',
-    department: 'CS',
-    block: 'A',
-    roomNumber: '',
-    joiningYear: new Date().getFullYear().toString()
+    firstName: "",
+    lastName: "",
+    rollNumber: "",
+    email: "",
+    department: "CS",
+    block: "A",
+    roomNumber: "",
+    joiningYear: new Date().getFullYear().toString(),
   });
 
   const [editFormData, setEditFormData] = useState({
-    firstName: '',
-    lastName: '',
-    department: 'CS',
-    block: 'A',
-    roomNumber: '',
-    joiningYear: new Date().getFullYear().toString()
+    firstName: "",
+    lastName: "",
+    rollNumber: "",
+    department: "CS",
+    block: "A",
+    roomNumber: "",
+    joiningYear: new Date().getFullYear().toString(),
+    jobProfile: "",
+    linkedin: "",
   });
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState(null);
+  const editFileInputRef = useRef(null);
+
+  const JOB_PROFILE_OPTIONS = [
+    { value: "", label: "Not specified" },
+    { value: "SDE", label: "SDE" },
+    { value: "DATA", label: "Data" },
+    { value: "CONSULT", label: "Consulting" },
+    { value: "FINANCE", label: "Finance" },
+    { value: "CORE", label: "Core" },
+    { value: "PRODUCT", label: "Product" },
+    { value: "OTHERS", label: "Others" },
+  ];
 
   const [selectedStudent, setSelectedStudent] = useState(null);
 
@@ -73,13 +94,38 @@ const AdminStudentDatabase = () => {
   const [deleting, setDeleting] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
-  const blocks = ['All', 'A', 'B', 'C', 'D'];
-  const allDepartments = ['CS', 'EC', 'EE', 'ME', 'CH', 'CE', 'AE', 'IM', 'IE', 'NA', 'AG', 'MI', 'MT', 'BT', 'MF', 'AR', 'MA', 'PH', 'CY', 'HS', 'GG', 'EX'];
-  const departments = ['All', ...allDepartments.sort()];
+  const blocks = ["All", "A", "B", "C", "D"];
+  const allDepartments = [
+    "CS",
+    "EC",
+    "EE",
+    "ME",
+    "CH",
+    "CE",
+    "AE",
+    "IM",
+    "IE",
+    "NA",
+    "AG",
+    "MI",
+    "MT",
+    "BT",
+    "MF",
+    "AR",
+    "MA",
+    "PH",
+    "CY",
+    "HS",
+    "GG",
+    "EX",
+  ];
+  const departments = ["All", ...allDepartments.sort()];
 
   const currentYear = new Date().getFullYear();
-  const batchYears = Array.from({ length: 9 }, (_, i) => (currentYear - i).toString());
-  const batches = ['All', ...batchYears];
+  const batchYears = Array.from({ length: 9 }, (_, i) =>
+    (currentYear - i).toString(),
+  );
+  const batches = ["All", ...batchYears];
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -87,16 +133,28 @@ const AdminStudentDatabase = () => {
   }, []);
 
   useEffect(() => {
-    if (isAddModalOpen || isImportModalOpen || isEditModalOpen || isDeleteModalOpen || isResetPasswordModalOpen) {
-      document.body.style.overflow = 'hidden';
+    if (
+      isAddModalOpen ||
+      isImportModalOpen ||
+      isEditModalOpen ||
+      isDeleteModalOpen ||
+      isResetPasswordModalOpen
+    ) {
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
     }
 
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
     };
-  }, [isAddModalOpen, isImportModalOpen, isEditModalOpen, isDeleteModalOpen, isResetPasswordModalOpen]);
+  }, [
+    isAddModalOpen,
+    isImportModalOpen,
+    isEditModalOpen,
+    isDeleteModalOpen,
+    isResetPasswordModalOpen,
+  ]);
 
   const fetchStudents = async () => {
     setIsLoading(true);
@@ -108,10 +166,10 @@ const AdminStudentDatabase = () => {
         return;
       }
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/students`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/students`,
         {
-          headers: { Authorization: `Bearer ${currentToken}` }
-        }
+          headers: { Authorization: `Bearer ${currentToken}` },
+        },
       );
       setAllStudents(response.data);
       setStudents(response.data);
@@ -125,29 +183,38 @@ const AdminStudentDatabase = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   useEffect(() => {
     let filtered = allStudents;
 
-    if (filters.block !== 'All') {
-      filtered = filtered.filter(student => student.block === filters.block);
+    if (filters.block !== "All") {
+      filtered = filtered.filter((student) => student.block === filters.block);
     }
 
-    if (filters.dept !== 'All') {
-      filtered = filtered.filter(student => student.department === filters.dept);
+    if (filters.dept !== "All") {
+      filtered = filtered.filter(
+        (student) => student.department === filters.dept,
+      );
     }
 
-    if (filters.batch !== 'All') {
-      filtered = filtered.filter(student => String(student.joiningYear) === filters.batch);
+    if (filters.batch !== "All") {
+      filtered = filtered.filter(
+        (student) => String(student.joiningYear) === filters.batch,
+      );
     }
 
     if (filters.search) {
-      filtered = filtered.filter(student =>
-        `${student.firstName} ${student.lastName}`.toLowerCase().includes(filters.search.toLowerCase()) ||
-        student.rollNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
-        student.roomNumber.toString().includes(filters.search.toLowerCase())
+      filtered = filtered.filter(
+        (student) =>
+          `${student.firstName} ${student.lastName}`
+            .toLowerCase()
+            .includes(filters.search.toLowerCase()) ||
+          student.rollNumber
+            .toLowerCase()
+            .includes(filters.search.toLowerCase()) ||
+          student.roomNumber.toString().includes(filters.search.toLowerCase()),
       );
     }
 
@@ -157,8 +224,8 @@ const AdminStudentDatabase = () => {
   const handleAddSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.email.endsWith('@kgpian.iitkgp.ac.in')) {
-      toast.error('Only @kgpian.iitkgp.ac.in emails are allowed.');
+    if (!formData.email.endsWith("@kgpian.iitkgp.ac.in")) {
+      toast.error("Only @kgpian.iitkgp.ac.in emails are allowed.");
       return;
     }
 
@@ -166,28 +233,30 @@ const AdminStudentDatabase = () => {
     try {
       const currentToken = await getToken();
       await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/students/create`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/students/create`,
         formData,
         {
-          headers: { Authorization: `Bearer ${currentToken}` }
-        }
+          headers: { Authorization: `Bearer ${currentToken}` },
+        },
       );
       setIsAddModalOpen(false);
       setFormData({
-        firstName: '',
-        lastName: '',
-        rollNumber: '',
-        email: '',
-        department: 'CS',
-        block: 'A',
-        roomNumber: '',
-        joiningYear: new Date().getFullYear().toString()
+        firstName: "",
+        lastName: "",
+        rollNumber: "",
+        email: "",
+        department: "CS",
+        block: "A",
+        roomNumber: "",
+        joiningYear: new Date().getFullYear().toString(),
       });
       fetchStudents();
       toast.success("Student added successfully.");
     } catch (err) {
       console.error(err);
-      toast.error(`Failed to add student: ${err.response?.data?.message || err.message}`);
+      toast.error(
+        `Failed to add student: ${err.response?.data?.message || err.message}`,
+      );
     } finally {
       setAdding(false);
     }
@@ -208,13 +277,13 @@ const AdminStudentDatabase = () => {
     reader.onload = async (event) => {
       try {
         const text = event.target.result;
-        const lines = text.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim());
+        const lines = text.split("\n");
+        const headers = lines[0].split(",").map((h) => h.trim());
 
         const studentsToImport = [];
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
-          const values = lines[i].split(',').map(v => v.trim());
+          const values = lines[i].split(",").map((v) => v.trim());
           const student = {};
           headers.forEach((h, index) => {
             student[h] = values[index];
@@ -223,37 +292,44 @@ const AdminStudentDatabase = () => {
           if (student.firstName && student.email && student.rollNumber) {
             studentsToImport.push({
               firstName: student.firstName,
-              lastName: student.lastName || '',
+              lastName: student.lastName || "",
               email: student.email,
               rollNumber: student.rollNumber,
-              department: student.department || 'CS',
-              block: student.block || 'A',
+              department: student.department || "CS",
+              block: student.block || "A",
               roomNumber: parseInt(student.roomNumber) || 101,
-              joiningYear: parseInt(student.joiningYear) || new Date().getFullYear()
+              joiningYear:
+                parseInt(student.joiningYear) || new Date().getFullYear(),
             });
           }
         }
 
         if (studentsToImport.length === 0) {
-          throw new Error("No valid students found in CSV. Please check format.");
+          throw new Error(
+            "No valid students found in CSV. Please check format.",
+          );
         }
 
         const currentToken = await getToken();
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/students/bulk-create`,
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/students/bulk-create`,
           { students: studentsToImport },
           {
-            headers: { Authorization: `Bearer ${currentToken}` }
-          }
+            headers: { Authorization: `Bearer ${currentToken}` },
+          },
         );
 
-        toast.success(`Import complete: ${res.data.successCount} added, ${res.data.failedCount} failed.`);
+        toast.success(
+          `Import complete: ${res.data.successCount} added, ${res.data.failedCount} failed.`,
+        );
         setIsImportModalOpen(false);
         setCsvFile(null);
         fetchStudents();
       } catch (err) {
         console.error(err);
-        toast.error(`Import failed: ${err.response?.data?.message || err.message}`);
+        toast.error(
+          `Import failed: ${err.response?.data?.message || err.message}`,
+        );
       } finally {
         setImporting(false);
       }
@@ -264,14 +340,48 @@ const AdminStudentDatabase = () => {
   const handleOpenEdit = (student) => {
     setSelectedStudent(student);
     setEditFormData({
-      firstName: student.firstName || '',
-      lastName: student.lastName || '',
-      department: student.department || 'CS',
-      block: student.block || 'A',
-      roomNumber: student.roomNumber?.toString() || '',
-      joiningYear: student.joiningYear?.toString() || new Date().getFullYear().toString()
+      firstName: student.firstName || "",
+      lastName: student.lastName || "",
+      rollNumber: student.rollNumber || "",
+      department: student.department || "CS",
+      block: student.block || "A",
+      roomNumber: student.roomNumber?.toString() || "",
+      joiningYear:
+        student.joiningYear?.toString() || new Date().getFullYear().toString(),
+      jobProfile: student.jobProfile || "",
+      linkedin: student.linkedin || "",
     });
+    setEditImageFile(null);
+    setEditImagePreview(student.image || null);
     setIsEditModalOpen(true);
+  };
+
+  const handleEditImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB.");
+      return;
+    }
+    setEditImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setEditImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const uploadStudentImage = async (file, studentId) => {
+    const fileExt = file.name.split(".").pop();
+    const filePath = `avatar/${studentId}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage
+      .from("Patelhall")
+      .upload(filePath, file, { upsert: true });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from("Patelhall").getPublicUrl(filePath);
+    return data.publicUrl;
   };
 
   const handleEditSubmit = async (e) => {
@@ -281,27 +391,41 @@ const AdminStudentDatabase = () => {
     setUpdating(true);
     try {
       const currentToken = await getToken();
+
+      let imageUrl = selectedStudent.image || null;
+      if (editImageFile) {
+        imageUrl = await uploadStudentImage(editImageFile, selectedStudent.id);
+      }
+
       await axios.put(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/students/${selectedStudent.id}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/students/${selectedStudent.id}`,
         {
           firstName: editFormData.firstName,
           lastName: editFormData.lastName,
+          rollNumber: editFormData.rollNumber,
           department: editFormData.department,
           block: editFormData.block,
           roomNumber: editFormData.roomNumber,
           joiningYear: editFormData.joiningYear,
+          jobProfile: editFormData.jobProfile || null,
+          linkedin: editFormData.linkedin || null,
+          image: imageUrl,
         },
         {
-          headers: { Authorization: `Bearer ${currentToken}` }
-        }
+          headers: { Authorization: `Bearer ${currentToken}` },
+        },
       );
       toast.success("Student updated successfully.");
       setIsEditModalOpen(false);
       setSelectedStudent(null);
+      setEditImageFile(null);
+      setEditImagePreview(null);
       fetchStudents();
     } catch (err) {
       console.error(err);
-      toast.error(`Failed to update student: ${err.response?.data?.message || err.message}`);
+      toast.error(
+        `Failed to update student: ${err.response?.data?.message || err.message}`,
+      );
     } finally {
       setUpdating(false);
     }
@@ -319,10 +443,10 @@ const AdminStudentDatabase = () => {
     try {
       const currentToken = await getToken();
       await axios.delete(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/students/${selectedStudent.id}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/students/${selectedStudent.id}`,
         {
-          headers: { Authorization: `Bearer ${currentToken}` }
-        }
+          headers: { Authorization: `Bearer ${currentToken}` },
+        },
       );
       toast.success("Student deleted successfully.");
       setIsDeleteModalOpen(false);
@@ -330,7 +454,9 @@ const AdminStudentDatabase = () => {
       fetchStudents();
     } catch (err) {
       console.error(err);
-      toast.error(`Failed to delete student: ${err.response?.data?.message || err.message}`);
+      toast.error(
+        `Failed to delete student: ${err.response?.data?.message || err.message}`,
+      );
     } finally {
       setDeleting(false);
     }
@@ -348,18 +474,20 @@ const AdminStudentDatabase = () => {
     try {
       const currentToken = await getToken();
       await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/students/${selectedStudent.id}/reset-password`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/students/${selectedStudent.id}/reset-password`,
         {},
         {
-          headers: { Authorization: `Bearer ${currentToken}` }
-        }
+          headers: { Authorization: `Bearer ${currentToken}` },
+        },
       );
       toast.success("Password reset to student's roll number.");
       setIsResetPasswordModalOpen(false);
       setSelectedStudent(null);
     } catch (err) {
       console.error(err);
-      toast.error(`Failed to reset password: ${err.response?.data?.message || err.message}`);
+      toast.error(
+        `Failed to reset password: ${err.response?.data?.message || err.message}`,
+      );
     } finally {
       setResettingPassword(false);
     }
@@ -377,7 +505,8 @@ const AdminStudentDatabase = () => {
                   <div
                     className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat blur-xs scale-110"
                     style={{
-                      backgroundImage: 'linear-gradient(rgba(74, 0, 0, 0.85) 0%, rgba(16, 22, 34, 0.6) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZ_AOtFhZRsAj-qahqn3QKkG8gccl-CNDhqYVLnebmMCt4_PP-td1cAcidBbiOXkWu_h7OMU7kzgkImTqVC8zZP8d_T_87XpaCyxy2Tl7TFHFpRaAg1wuOWYGtHbQf8mF87r1IYMPUFmssSqGfTgZr6RhAyd2QZ1PrmE-wmGM6y-M6bsd1GQS6ddpMDtN7vDyJ6AZgQHFexef8fTL3h9tudRzRQfk76Tuc9ThWRHem9q0Q18vw7ONV3ygPuOEyKWOjQjaxwEwjup4")'
+                      backgroundImage:
+                        'linear-gradient(rgba(74, 0, 0, 0.85) 0%, rgba(16, 22, 34, 0.6) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCZ_AOtFhZRsAj-qahqn3QKkG8gccl-CNDhqYVLnebmMCt4_PP-td1cAcidBbiOXkWu_h7OMU7kzgkImTqVC8zZP8d_T_87XpaCyxy2Tl7TFHFpRaAg1wuOWYGtHbQf8mF87r1IYMPUFmssSqGfTgZr6RhAyd2QZ1PrmE-wmGM6y-M6bsd1GQS6ddpMDtN7vDyJ6AZgQHFexef8fTL3h9tudRzRQfk76Tuc9ThWRHem9q0Q18vw7ONV3ygPuOEyKWOjQjaxwEwjup4")',
                     }}
                   ></div>
                   <div className="flex flex-col gap-4 relative z-10 max-w-4xl mx-auto px-4">
@@ -412,7 +541,9 @@ const AdminStudentDatabase = () => {
                 <h3 className="text-primary text-2xl font-serif font-bold flex items-center gap-2">
                   <MdSchool className="text-gold" /> Student Directory
                 </h3>
-                <p className="text-gray-500 text-sm mt-1">Manage and view records of hall students.</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Manage and view records of hall students.
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -450,9 +581,9 @@ const AdminStudentDatabase = () => {
                 onChange={handleFilterChange}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gold focus:ring-1 focus:ring-gold outline-none text-sm bg-white cursor-pointer"
               >
-                {blocks.map(block => (
+                {blocks.map((block) => (
                   <option key={block} value={block}>
-                    {block === 'All' ? 'All Blocks' : `Block ${block}`}
+                    {block === "All" ? "All Blocks" : `Block ${block}`}
                   </option>
                 ))}
               </select>
@@ -465,8 +596,8 @@ const AdminStudentDatabase = () => {
               >
                 <option value="All">All Departments</option>
                 {departments
-                  .filter(d => d !== 'All')
-                  .map(dept => (
+                  .filter((d) => d !== "All")
+                  .map((dept) => (
                     <option key={dept} value={dept}>
                       {dept}
                     </option>
@@ -481,8 +612,8 @@ const AdminStudentDatabase = () => {
               >
                 <option value="All">All Batches</option>
                 {batches
-                  .filter(b => b !== 'All')
-                  .map(batch => (
+                  .filter((b) => b !== "All")
+                  .map((batch) => (
                     <option key={batch} value={batch}>
                       {batch}
                     </option>
@@ -498,17 +629,31 @@ const AdminStudentDatabase = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
             ) : error ? (
-              <div className="p-10 text-center text-red-500 font-bold">{error}</div>
+              <div className="p-10 text-center text-red-500 font-bold">
+                {error}
+              </div>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-primary/5 border-b border-primary/10">
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Roll No.</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Name</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Room No</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Dept</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Batch</th>
-                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Actions</th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Roll No.
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Name
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Room No
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">
+                      Dept
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">
+                      Batch
+                    </th>
+                    <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -517,7 +662,9 @@ const AdminStudentDatabase = () => {
                       key={student.id}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors group"
                     >
-                      <td className="p-5 font-medium text-gray-500">{student.rollNumber}</td>
+                      <td className="p-5 font-medium text-gray-500">
+                        {student.rollNumber}
+                      </td>
                       <td className="p-5">
                         <div className="font-bold text-gray-800 text-lg group-hover:text-primary transition-colors">
                           {student.firstName} {student.lastName}
@@ -525,13 +672,19 @@ const AdminStudentDatabase = () => {
                       </td>
                       <td className="p-5">
                         <div className="flex items-center gap-2 text-gray-700 font-medium">
-                          <MdRoom className="text-gray-400 group-hover:text-gold transition-colors" size={16} />
+                          <MdRoom
+                            className="text-gray-400 group-hover:text-gold transition-colors"
+                            size={16}
+                          />
                           {student.block}-{student.roomNumber}
                         </div>
                       </td>
                       <td className="p-5">
                         <div className="flex items-center gap-2 text-gray-700 font-medium">
-                          <MdSchool className="text-gray-400 group-hover:text-gold transition-colors" size={16} />
+                          <MdSchool
+                            className="text-gray-400 group-hover:text-gold transition-colors"
+                            size={16}
+                          />
                           {student.department}
                         </div>
                       </td>
@@ -590,7 +743,9 @@ const AdminStudentDatabase = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-              <h3 className="text-xl font-bold font-serif text-primary">Add New Student</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Add New Student
+              </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
                 className="cursor-pointer text-gray-400 hover:text-red-500"
@@ -601,57 +756,79 @@ const AdminStudentDatabase = () => {
             <form onSubmit={handleAddSubmit} className="p-6 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">First Name *</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    First Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={formData.firstName}
-                    onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Last Name</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     value={formData.lastName}
-                    onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Email *</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Email *
+                  </label>
                   <input
                     type="email"
                     required
                     pattern=".+@kgpian\.iitkgp\.ac\.in$"
                     title="Must be a @kgpian.iitkgp.ac.in email address"
                     value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                     placeholder="user@kgpian.iitkgp.ac.in"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Roll Number *</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Roll Number *
+                  </label>
                   <input
                     type="text"
                     required
                     value={formData.rollNumber}
-                    onChange={e => setFormData({ ...formData, rollNumber: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, rollNumber: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Batch Year *</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Batch Year *
+                  </label>
                   <select
                     required
                     value={formData.joiningYear}
-                    onChange={e => setFormData({ ...formData, joiningYear: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, joiningYear: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   >
-                    <option value="" disabled>Select Year</option>
-                    {batchYears.map(year => (
+                    <option value="" disabled>
+                      Select Year
+                    </option>
+                    {batchYears.map((year) => (
                       <option key={year} value={year}>
                         {year}
                       </option>
@@ -659,15 +836,19 @@ const AdminStudentDatabase = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Block</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Block
+                  </label>
                   <select
                     value={formData.block}
-                    onChange={e => setFormData({ ...formData, block: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, block: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   >
                     {blocks
-                      .filter(b => b !== 'All')
-                      .map(b => (
+                      .filter((b) => b !== "All")
+                      .map((b) => (
                         <option key={b} value={b}>
                           {b}
                         </option>
@@ -675,25 +856,33 @@ const AdminStudentDatabase = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Room Number</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Room Number
+                  </label>
                   <input
                     type="number"
                     required
                     value={formData.roomNumber}
-                    onChange={e => setFormData({ ...formData, roomNumber: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, roomNumber: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Department</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Department
+                  </label>
                   <select
                     value={formData.department}
-                    onChange={e => setFormData({ ...formData, department: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, department: e.target.value })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   >
                     {departments
-                      .filter(d => d !== 'All')
-                      .map(d => (
+                      .filter((d) => d !== "All")
+                      .map((d) => (
                         <option key={d} value={d}>
                           {d}
                         </option>
@@ -728,7 +917,9 @@ const AdminStudentDatabase = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-xl font-bold font-serif text-primary">Bulk Import CSV</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Bulk Import CSV
+              </h3>
               <button
                 onClick={() => setIsImportModalOpen(false)}
                 className="cursor-pointer text-gray-400 hover:text-red-500"
@@ -741,7 +932,8 @@ const AdminStudentDatabase = () => {
                 Upload a CSV file with the following headers:
                 <br />
                 <code className="text-xs bg-gray-100 p-1 rounded">
-                  email, rollNumber, firstName, lastName, department, block, roomNumber, joiningYear
+                  email, rollNumber, firstName, lastName, department, block,
+                  roomNumber, joiningYear
                 </code>
               </p>
               <input
@@ -777,11 +969,15 @@ const AdminStudentDatabase = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-              <h3 className="text-xl font-bold font-serif text-primary">Edit Student</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Edit Student
+              </h3>
               <button
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setSelectedStudent(null);
+                  setEditImageFile(null);
+                  setEditImagePreview(null);
                 }}
                 className="cursor-pointer text-gray-400 hover:text-red-500"
               >
@@ -789,45 +985,108 @@ const AdminStudentDatabase = () => {
               </button>
             </div>
             <form onSubmit={handleEditSubmit} className="p-6 overflow-y-auto">
+              {/* Profile Image */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-200 bg-gray-100 flex items-center justify-center">
+                    {editImagePreview ? (
+                      <img
+                        src={editImagePreview}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <MdPerson className="text-gray-400" size={48} />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editFileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg hover:bg-gold transition-colors cursor-pointer"
+                    title="Change photo"
+                  >
+                    <MdCameraAlt size={16} />
+                  </button>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleEditImageSelect}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Click camera icon to upload photo (max 2MB)
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">First Name *</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    First Name *
+                  </label>
                   <input
                     type="text"
                     required
                     value={editFormData.firstName}
-                    onChange={e => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        firstName: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Last Name</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     value={editFormData.lastName}
-                    onChange={e => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        lastName: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Roll Number</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Roll Number *
+                  </label>
                   <input
                     type="text"
-                    value={selectedStudent.rollNumber}
-                    disabled
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                    required
+                    value={editFormData.rollNumber}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        rollNumber: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Roll number cannot be changed.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Batch Year *</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Batch Year *
+                  </label>
                   <select
                     required
                     value={editFormData.joiningYear}
-                    onChange={e => setEditFormData({ ...editFormData, joiningYear: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        joiningYear: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   >
-                    {batchYears.map(year => (
+                    {batchYears.map((year) => (
                       <option key={year} value={year}>
                         {year}
                       </option>
@@ -835,15 +1094,22 @@ const AdminStudentDatabase = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Block</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Block
+                  </label>
                   <select
                     value={editFormData.block}
-                    onChange={e => setEditFormData({ ...editFormData, block: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        block: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   >
                     {blocks
-                      .filter(b => b !== 'All')
-                      .map(b => (
+                      .filter((b) => b !== "All")
+                      .map((b) => (
                         <option key={b} value={b}>
                           {b}
                         </option>
@@ -851,30 +1117,82 @@ const AdminStudentDatabase = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Room Number</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Room Number
+                  </label>
                   <input
                     type="number"
                     required
                     value={editFormData.roomNumber}
-                    onChange={e => setEditFormData({ ...editFormData, roomNumber: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        roomNumber: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Department</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Department
+                  </label>
                   <select
                     value={editFormData.department}
-                    onChange={e => setEditFormData({ ...editFormData, department: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        department: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
                   >
                     {departments
-                      .filter(d => d !== 'All')
-                      .map(d => (
+                      .filter((d) => d !== "All")
+                      .map((d) => (
                         <option key={d} value={d}>
                           {d}
                         </option>
                       ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Job Profile
+                  </label>
+                  <select
+                    value={editFormData.jobProfile}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        jobProfile: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                  >
+                    {JOB_PROFILE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                    LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    value={editFormData.linkedin}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        linkedin: e.target.value,
+                      })
+                    }
+                    placeholder="https://linkedin.com/in/..."
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                  />
                 </div>
               </div>
               <div className="mt-8 flex justify-end gap-2 flex-shrink-0">
@@ -883,6 +1201,8 @@ const AdminStudentDatabase = () => {
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setSelectedStudent(null);
+                    setEditImageFile(null);
+                    setEditImagePreview(null);
                   }}
                   disabled={updating}
                   className="cursor-pointer px-6 py-2 border rounded-lg text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -907,7 +1227,9 @@ const AdminStudentDatabase = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-xl font-bold font-serif text-primary">Delete Student</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Delete Student
+              </h3>
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);
@@ -922,12 +1244,14 @@ const AdminStudentDatabase = () => {
               <p className="text-gray-700 mb-4">
                 Are you sure you want to delete{" "}
                 <span className="font-bold">
-                  {selectedStudent.firstName} {selectedStudent.lastName} ({selectedStudent.rollNumber})
+                  {selectedStudent.firstName} {selectedStudent.lastName} (
+                  {selectedStudent.rollNumber})
                 </span>
                 ?
               </p>
               <p className="text-sm text-red-600 mb-6">
-                This action cannot be undone. The student's account and access will be removed.
+                This action cannot be undone. The student's account and access
+                will be removed.
               </p>
               <div className="flex justify-end gap-2">
                 <button
@@ -960,7 +1284,9 @@ const AdminStudentDatabase = () => {
         <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-xl font-bold font-serif text-primary">Reset Password</h3>
+              <h3 className="text-xl font-bold font-serif text-primary">
+                Reset Password
+              </h3>
               <button
                 onClick={() => {
                   setIsResetPasswordModalOpen(false);
@@ -975,7 +1301,8 @@ const AdminStudentDatabase = () => {
               <p className="text-gray-700 mb-4">
                 Reset password for{" "}
                 <span className="font-bold">
-                  {selectedStudent.firstName} {selectedStudent.lastName} ({selectedStudent.rollNumber})
+                  {selectedStudent.firstName} {selectedStudent.lastName} (
+                  {selectedStudent.rollNumber})
                 </span>
                 ?
               </p>
@@ -1012,4 +1339,3 @@ const AdminStudentDatabase = () => {
 };
 
 export default AdminStudentDatabase;
-

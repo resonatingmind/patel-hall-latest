@@ -90,22 +90,10 @@ const AppRoutes = () => {
           path="/portal/admin/manage-events/:id"
           element={<CouncilEventDetails />}
         />
-        <Route
-          path="/portal/admin/batch"
-          element={<CouncilBatch />}
-        />
-        <Route
-          path="/portal/admin/council"
-          element={<WardenCouncil />}
-        />
-        <Route
-          path="/portal/admin/alumni"
-          element={<WardenAlumni />}
-        />
-        <Route
-          path="/portal/admin/grievance"
-          element={<WardenGrievance />}
-        />
+        <Route path="/portal/admin/batch" element={<CouncilBatch />} />
+        <Route path="/portal/admin/council" element={<WardenCouncil />} />
+        <Route path="/portal/admin/alumni" element={<WardenAlumni />} />
+        <Route path="/portal/admin/grievance" element={<WardenGrievance />} />
         <Route
           path="/portal/council/manage-events"
           element={<CouncilManageEvents />}

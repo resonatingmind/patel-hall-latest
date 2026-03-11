@@ -139,24 +139,42 @@ export const updateStudentService = async (studentId, updateData) => {
   const {
     firstName,
     lastName,
+    rollNumber,
     department,
     block,
     roomNumber,
     joiningYear,
     jobProfile,
+    image,
+    linkedin,
   } = updateData;
+
+  // If rollNumber is being changed, verify it's unique
+  if (rollNumber !== undefined) {
+    const existing = await prisma.student.findUnique({
+      where: { rollNumber },
+    });
+    if (existing && existing.id !== studentId) {
+      throw new Error(
+        `Roll number ${rollNumber} is already in use by another student.`,
+      );
+    }
+  }
 
   const student = await prisma.student.update({
     where: { id: studentId },
     data: {
       firstName: firstName ?? undefined,
       lastName: lastName ?? undefined,
+      rollNumber: rollNumber ?? undefined,
       department: department ?? undefined,
       block: block ?? undefined,
       roomNumber: roomNumber !== undefined ? parseInt(roomNumber) : undefined,
       joiningYear:
         joiningYear !== undefined ? parseInt(joiningYear) : undefined,
-      jobProfile: jobProfile ?? undefined,
+      jobProfile: jobProfile !== undefined ? jobProfile || null : undefined,
+      image: image !== undefined ? image || null : undefined,
+      linkedin: linkedin !== undefined ? linkedin || null : undefined,
     },
   });
 
