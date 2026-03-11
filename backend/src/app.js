@@ -60,4 +60,37 @@ app.get("/api/debug/env", (_req, res) => {
   });
 });
 
+// Token debug endpoint — remove after debugging
+// Send: GET /api/debug/token with Authorization: Bearer <your-token>
+app.get("/api/debug/token", async (req, res) => {
+  const { supabase } = await import("./config/supabase.js");
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.json({ error: "No Authorization header sent" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.json({ error: "No token found after 'Bearer'" });
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    return res.json({
+      tokenPreview: `${token.slice(0, 20)}…${token.slice(-10)}`,
+      tokenLength: token.length,
+      supabaseError: error?.message ?? null,
+      userId: data?.user?.id ?? null,
+      email: data?.user?.email ?? null,
+    });
+  } catch (e) {
+    return res.json({
+      tokenPreview: `${token.slice(0, 20)}…${token.slice(-10)}`,
+      tokenLength: token.length,
+      thrownError: e.message,
+    });
+  }
+});
+
 export default app;
