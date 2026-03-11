@@ -25,8 +25,16 @@ export const createStudentService = async (studentData) => {
     jobProfile,
   } = studentData;
 
-  // 1️⃣ Create user in Supabase Auth directly (Skip Invite)
-  // Using rollNumber as the default password
+  // Check if a Student profile already exists for this roll number
+  const existingStudent = await prisma.student.findUnique({
+    where: { rollNumber },
+  });
+  if (existingStudent) {
+    throw new Error(`Student with roll number ${rollNumber} already exists.`);
+  }
+
+  // 1️⃣ Create or retrieve Supabase Auth user
+  let authUser;
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: rollNumber,
@@ -34,24 +42,46 @@ export const createStudentService = async (studentData) => {
   });
 
   if (error) {
-    throw new Error(`Supabase user creation failed: ${error.message}`);
+    // If user already exists in Supabase Auth, fetch them by email
+    if (
+      error.message?.includes("already been registered") ||
+      error.message?.includes("already exists")
+    ) {
+      const { data: listData, error: listError } =
+        await supabaseAdmin.auth.admin.listUsers();
+      if (listError) throw new Error(`Supabase error: ${listError.message}`);
+      authUser = listData.users.find((u) => u.email === email);
+      if (!authUser)
+        throw new Error(`Could not find existing Supabase user for ${email}.`);
+    } else {
+      throw new Error(`Supabase user creation failed: ${error.message}`);
+    }
+  } else {
+    authUser = data.user;
   }
 
-  const authUser = data.user;
-
-  // 2️⃣ Create User in Prisma DB (Role: STUDENT)
-  await prisma.user.create({
-    data: {
-      id: authUser.id,
-      email: authUser.email,
-      role: "STUDENT",
-    },
+  // 2️⃣ Create User in Prisma DB if not already present
+  const existingUser = await prisma.user.findUnique({
+    where: { email: authUser.email },
   });
+  let userId;
+  if (existingUser) {
+    userId = existingUser.id;
+  } else {
+    await prisma.user.create({
+      data: {
+        id: authUser.id,
+        email: authUser.email,
+        role: "STUDENT",
+      },
+    });
+    userId = authUser.id;
+  }
 
   // 3️⃣ Create Student Profile in Prisma
   const student = await prisma.student.create({
     data: {
-      userId: authUser.id,
+      userId,
       firstName,
       lastName,
       rollNumber,
@@ -94,7 +124,15 @@ export const bulkCreateStudentsService = async (studentsList) => {
 
 // Update a student
 export const updateStudentService = async (studentId, updateData) => {
-  const { firstName, lastName, department, block, roomNumber, joiningYear, jobProfile } = updateData;
+  const {
+    firstName,
+    lastName,
+    department,
+    block,
+    roomNumber,
+    joiningYear,
+    jobProfile,
+  } = updateData;
 
   const student = await prisma.student.update({
     where: { id: studentId },
@@ -104,7 +142,8 @@ export const updateStudentService = async (studentId, updateData) => {
       department: department ?? undefined,
       block: block ?? undefined,
       roomNumber: roomNumber !== undefined ? parseInt(roomNumber) : undefined,
-      joiningYear: joiningYear !== undefined ? parseInt(joiningYear) : undefined,
+      joiningYear:
+        joiningYear !== undefined ? parseInt(joiningYear) : undefined,
       jobProfile: jobProfile ?? undefined,
     },
   });

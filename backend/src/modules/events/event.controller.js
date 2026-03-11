@@ -15,13 +15,17 @@ export const listEvents = async (req, res) => {
 
 export const createEvent = async (req, res) => {
   try {
-    const { name, category } = req.body;
+    const { name, category, description } = req.body;
     if (!name || !category) {
       return res
         .status(400)
         .json({ message: "Name and Category are required." });
     }
-    const newEvent = await eventService.createEvent({ name, category });
+    const newEvent = await eventService.createEvent({
+      name,
+      category,
+      description,
+    });
     res.status(201).json(newEvent);
   } catch (error) {
     console.error("Error creating event:", error);
@@ -34,14 +38,13 @@ export const createEvent = async (req, res) => {
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, secretPassword } = req.body;
+    const { name, category, description } = req.body;
 
-    const expectedPassword = process.env.EVENT_SECRET_PASSWORD || "secret";
-    if (secretPassword !== expectedPassword) {
-      return res.status(403).json({ message: "Invalid secret password." });
-    }
-
-    const updatedEvent = await eventService.updateEvent(id, { name, category });
+    const updatedEvent = await eventService.updateEvent(id, {
+      name,
+      category,
+      description,
+    });
     res.status(200).json(updatedEvent);
   } catch (error) {
     console.error("Error updating event:", error);

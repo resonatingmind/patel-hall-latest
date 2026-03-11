@@ -3,11 +3,10 @@ import { supabase as supabaseAdmin } from "../../config/supabase.js";
 
 const ROLL_NO_REGEX = /^\d{2}[A-Z]{2}\d{5}$/; // e.g., 24PH10032
 const ROOM_NO_REGEX = /^[A-Z]\d{3}$/; // e.g., B110
-const YEAR_REGEX = /^[1-9]$/; // Single digit 1-9
+const YEAR_REGEX = /^[1-9]$/; // 1-9
 
 /**
- * Registers a new student in Supabase Auth and the Prisma database.
- * A confirmation email is sent automatically by Supabase.
+ * Registers a new student in Supabase Auth and the Prisma database
  */
 const signUpService = async ({
   email,
@@ -18,34 +17,47 @@ const signUpService = async ({
   roomNo,
   year,
 }) => {
-  // ── Validation ──────────────────────────────────────────────────────────────
+  // ── Input Validation ─────────────────────────────────────────────
   if (!firstName?.trim()) throw new Error("First Name is required.");
 
   if (!email?.endsWith("@kgpian.iitkgp.ac.in"))
     throw new Error("Please use your institute email (@kgpian.iitkgp.ac.in).");
 
   if (!ROLL_NO_REGEX.test(rollNo))
-    throw new Error("Invalid Roll Number format. Expected format: 24MA10032");
+    throw new Error("Invalid Roll Number format. Expected: 24MA10032");
 
-  if (!roomNo?.trim()) throw new Error("Room Number is required.");
+  if (!roomNo?.trim())
+    throw new Error("Room Number is required.");
+
   if (!ROOM_NO_REGEX.test(roomNo))
-    throw new Error(
-      "Invalid Room Number format. Expected format: C210 (Block + 3 digits)",
-    );
+    throw new Error("Invalid Room Number format. Expected: C210");
 
-  if (!year?.trim()) throw new Error("Year is required.");
+  if (!year?.trim())
+    throw new Error("Year is required.");
+
   if (!YEAR_REGEX.test(year))
-    throw new Error("Year must be a single digit (1-9).");
+    throw new Error("Year must be a single digit (1-9)");
 
-  // ── Duplicate check ──────────────────────────────────────────────────────────
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) throw new Error("A user with this email already exists.");
+  // ── Duplicate Checks ─────────────────────────────────────────────
+  const existingEmail = await prisma.user.findUnique({
+    where: { email },
+  });
 
-  // ── Create user in Supabase Auth ─────────────────────────────────────────────
+  if (existingEmail)
+    throw new Error("A user with this email already exists.");
+
+  const existingRoll = await prisma.user.findUnique({
+    where: { rollNo },
+  });
+
+  if (existingRoll)
+    throw new Error("This roll number is already registered.");
+
+  // ── Create Supabase User ─────────────────────────────────────────
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    email_confirm: false, // Supabase will send a confirmation email
+    email_confirm: false,
     user_metadata: {
       first_name: firstName,
       last_name: lastName ?? "",
@@ -55,32 +67,43 @@ const signUpService = async ({
     },
   });
 
-  if (error) throw new Error(error.message);
+  if (error)
+    throw new Error(error.message);
 
   const authUser = data.user;
 
-  // ── Create user record in Prisma ─────────────────────────────────────────────
-  const user = await prisma.user.create({
-    data: {
-      id: authUser.id,
-      email: authUser.email,
-      role: "STUDENT",
-      firstName,
-      lastName: lastName ?? null,
-      rollNo,
-      roomNo,
-      year,
-    },
-  });
+  // ── Create Prisma User (with rollback protection) ────────────────
+  try {
+    const user = await prisma.user.create({
+      data: {
+        id: authUser.id,
+        email: authUser.email,
+        role: "STUDENT",
+        firstName,
+        lastName: lastName ?? null,
+        rollNo,
+        roomNo,
+        year,
+      },
+    });
 
-  return user;
+    return user;
+
+  } catch (err) {
+    // rollback Supabase user if DB fails
+    await supabaseAdmin.auth.admin.deleteUser(authUser.id);
+    throw err;
+  }
 };
 
 /**
- * Checks whether a user with the given email already exists in the database.
+ * Check if user exists
  */
 const checkUserService = async (email) => {
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { email },
+  });
+
   return { exists: !!existing };
 };
 

@@ -11,13 +11,14 @@ import {
   MdEmojiEvents,
   MdSave,
   MdGroups,
+  MdSearch,
 } from "react-icons/md";
 import axios from "axios";
 import { supabase } from "../../../lib/supabaseClient";
 
 const EVENT_CATEGORIES = [
   { value: "SPORTS", label: "Sports" },
-  { value: "SOCIAL_AND_CULTURAL", label: "Social and Cultural" },
+  { value: "SOCIAL_AND_CULTURAL", label: "So-cult" },
   { value: "TECHNOLOGY", label: "Technology" },
   { value: "HALL_AFFAIRS", label: "Hall Affairs" },
 ];
@@ -27,6 +28,7 @@ const CouncilManageEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -44,6 +46,7 @@ const CouncilManageEvents = () => {
   const [editEventData, setEditEventData] = useState({
     name: "",
     category: "",
+    description: "",
   });
   const [actionError, setActionError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -384,20 +387,16 @@ const CouncilManageEvents = () => {
         {
           name: editEventData.name,
           category: editEventData.category,
-          secretPassword,
+          description: editEventData.description,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
       setShowEditModal(false);
-      setSecretPassword("");
       fetchEvents();
     } catch (err) {
-      setActionError(
-        err.response?.data?.message ||
-          "Failed to update event (incorrect password?)",
-      );
+      setActionError(err.response?.data?.message || "Failed to update event.");
     } finally {
       setActionLoading(false);
     }
@@ -429,8 +428,11 @@ const CouncilManageEvents = () => {
   const openEditModal = (e, event) => {
     e.stopPropagation();
     setSelectedEvent(event);
-    setEditEventData({ name: event.name, category: event.category });
-    setSecretPassword("");
+    setEditEventData({
+      name: event.name,
+      category: event.category,
+      description: event.description || "",
+    });
     setActionError("");
     setShowEditModal(true);
   };
@@ -443,7 +445,11 @@ const CouncilManageEvents = () => {
     setShowDeleteModal(true);
   };
 
-  const groupedEvents = events.reduce((acc, event) => {
+  const filteredEvents = events.filter((event) =>
+    event.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const groupedEvents = filteredEvents.reduce((acc, event) => {
     if (!acc[event.category]) acc[event.category] = [];
     acc[event.category].push(event);
     return acc;
@@ -509,6 +515,21 @@ const CouncilManageEvents = () => {
             >
               <MdAdd size={20} /> Create New Event
             </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative mb-8">
+            <MdSearch
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-gold focus:border-gold outline-none transition-all text-sm"
+              placeholder="Search events by name..."
+            />
           </div>
 
           {error && (
@@ -609,25 +630,22 @@ const CouncilManageEvents = () => {
                             </div>
 
                             <div className="p-5 flex flex-col flex-grow bg-white relative">
-                              {/* EDIT / DELETE buttons are hidden based on user feedback */}
-                              {/*
-                                                        <div className="absolute top-2 right-2 flex gap-1 z-10 bg-white/80 backdrop-blur-sm rounded-lg p-1">
-                                                            <button 
-                                                                onClick={(e) => openEditModal(e, event)}
-                                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                                title="Edit Event"
-                                                            >
-                                                                <MdEdit size={16} />
-                                                            </button>
-                                                            <button 
-                                                                onClick={(e) => openDeleteModal(e, event)}
-                                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                                title="Delete Event"
-                                                            >
-                                                                <MdDelete size={16} />
-                                                            </button>
-                                                        </div>
-                                                        */}
+                              <div className="absolute top-2 right-2 flex gap-1 z-10 bg-white/80 backdrop-blur-sm rounded-lg p-1">
+                                <button
+                                  onClick={(e) => openEditModal(e, event)}
+                                  className="cursor-pointer p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  title="Edit Event"
+                                >
+                                  <MdEdit size={16} />
+                                </button>
+                                <button
+                                  onClick={(e) => openDeleteModal(e, event)}
+                                  className="cursor-pointer p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Delete Event"
+                                >
+                                  <MdDelete size={16} />
+                                </button>
+                              </div>
 
                               <h5 className="font-bold text-lg text-gray-800 mb-2 group-hover:text-gold transition-colors break-words line-clamp-2 leading-snug">
                                 {event.name}
@@ -764,19 +782,199 @@ const CouncilManageEvents = () => {
         </div>
       )}
 
-      {/* Edit Modal (Hidden per user request, but code intact for future) */}
-      {/*
-            {showEditModal && selectedEvent && (
-                ... (Edit Modal logic)
-            )}
-            */}
+      {/* Edit Modal */}
+      {showEditModal && selectedEvent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+              <h3 className="text-xl font-bold font-serif text-primary flex items-center gap-2">
+                <MdEdit className="text-blue-500" /> Edit Event
+              </h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-full hover:bg-gray-200"
+              >
+                <MdClose size={24} />
+              </button>
+            </div>
 
-      {/* Delete Modal (Hidden) */}
-      {/*
-            {showDeleteModal && selectedEvent && (
-                ... (Delete Modal Logic)
-            )}
-            */}
+            <form
+              onSubmit={handleEditSubmit}
+              className="flex flex-col p-6 overflow-y-auto"
+            >
+              {actionError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200 flex items-center gap-2">
+                  <MdWarning className="flex-shrink-0" />
+                  <span>{actionError}</span>
+                </div>
+              )}
+              <div className="flex flex-col gap-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Event Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editEventData.name}
+                    onChange={(e) =>
+                      setEditEventData({
+                        ...editEventData,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold focus:border-gold outline-none transition-all"
+                    placeholder="e.g. Inter-Hall Cricket"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    required
+                    value={editEventData.category}
+                    onChange={(e) =>
+                      setEditEventData({
+                        ...editEventData,
+                        category: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold focus:border-gold outline-none transition-all bg-white"
+                  >
+                    {EVENT_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={editEventData.description}
+                    onChange={(e) =>
+                      setEditEventData({
+                        ...editEventData,
+                        description: e.target.value,
+                      })
+                    }
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold focus:border-gold outline-none transition-all resize-none"
+                    placeholder="Brief description of the event"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 mt-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={actionLoading}
+                  className="cursor-pointer px-5 py-2.5 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="cursor-pointer px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-md shadow-blue-600/20 flex items-center gap-2"
+                >
+                  {actionLoading && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  {actionLoading ? "Updating..." : "Update Event"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {showDeleteModal && selectedEvent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex justify-center items-center p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-red-50">
+              <h3 className="text-xl font-bold font-serif text-red-700 flex items-center gap-2">
+                <MdDelete className="text-red-500" /> Delete Event
+              </h3>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-400 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-full hover:bg-gray-200"
+              >
+                <MdClose size={24} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleDeleteSubmit}
+              className="flex flex-col p-6 overflow-y-auto"
+            >
+              {actionError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200 flex items-center gap-2">
+                  <MdWarning className="flex-shrink-0" />
+                  <span>{actionError}</span>
+                </div>
+              )}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+                  <MdWarning
+                    className="text-red-500 flex-shrink-0 mt-0.5"
+                    size={20}
+                  />
+                  <div>
+                    <p className="text-sm text-red-800 font-medium">
+                      Are you sure you want to delete{" "}
+                      <span className="font-bold">"{selectedEvent.name}"</span>?
+                    </p>
+                    <p className="text-xs text-red-600 mt-1">
+                      This action cannot be undone. All associated results and
+                      participation logs will also be deleted.
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Secret Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={secretPassword}
+                    onChange={(e) => setSecretPassword(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none transition-all"
+                    placeholder="Enter secret password to confirm"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 mt-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={actionLoading}
+                  className="cursor-pointer px-5 py-2.5 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="cursor-pointer px-6 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 shadow-md shadow-red-600/20 flex items-center gap-2"
+                >
+                  {actionLoading && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  {actionLoading ? "Deleting..." : "Delete Event"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Standings Modal */}
       {showStandingsModal && standingsCategory && (
