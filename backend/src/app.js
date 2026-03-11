@@ -47,4 +47,17 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// Diagnostic endpoint — remove after debugging
+app.get("/api/debug/env", (_req, res) => {
+  res.json({
+    SUPABASE_URL: process.env.SUPABASE_URL ? "✅ set" : "❌ MISSING",
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? `✅ set (starts with ${process.env.SUPABASE_SERVICE_ROLE_KEY.slice(0, 10)}…)`
+      : "❌ MISSING",
+    DATABASE_URL: process.env.DATABASE_URL ? "✅ set" : "❌ MISSING",
+    NODE_ENV: process.env.NODE_ENV ?? "not set",
+    PORT: process.env.PORT ?? "not set",
+  });
+});
+
 export default app;
