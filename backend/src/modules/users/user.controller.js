@@ -14,11 +14,8 @@ import { prisma } from "../../config/prisma.js";
 
 const getMe = async (req, res) => {
   try {
-    console.log("Authenticated user inside getMe:", req.user);
 
     const user = await getMeService(req.user.id);
-
-    console.log("getMeService returned:", user.id);
 
     res.json({
       role: user.role,
@@ -34,7 +31,6 @@ const getMe = async (req, res) => {
 
 const createUser = async (req, res) => {
   try {
-    console.log("Create User Request Body:", req.body); // Debug log
     const { email, role, password } = req.body;
 
     if (!email || !role || !password) {
@@ -101,7 +97,6 @@ const getUsersByRole = async (req, res) => {
 
 const createAdministrativeMember = async (req, res) => {
   try {
-    console.log("Create Administrative Member Body:", req.body);
 
     const {
       email,

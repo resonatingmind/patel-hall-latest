@@ -13,7 +13,6 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-    console.log(`[AUTH] Token received, length=${token?.length}`);
 
     step = "supabase-getUser";
     const { data, error } = await supabase.auth.getUser(token);
@@ -26,33 +25,25 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    console.log(
-      `[AUTH] Supabase user OK: id=${data.user.id}, email=${data.user.email}`,
-    );
-
     // Attach Supabase auth user to request
     req.user = data.user;
 
     step = "prisma-findById";
-    console.log(`[AUTH] Looking up Prisma user by id=${data.user.id}`);
     // Fetch user (and role) from Prisma DB using the Supabase auth user id
     let dbUser = await prisma.user.findUnique({
       where: { id: data.user.id },
       select: { role: true },
     });
-    console.log(`[AUTH] Prisma findById result:`, dbUser);
 
     // Fallback: if no User found by Supabase UID, try email lookup.
     // This handles ID mismatches that can occur during bulk import
     // (Prisma User.id ≠ Supabase auth UID).
     if (!dbUser && data.user.email) {
       step = "prisma-findByEmail";
-      console.log(`[AUTH] Not found by ID, trying email=${data.user.email}`);
       const emailUser = await prisma.user.findUnique({
         where: { email: data.user.email },
         select: { id: true, role: true },
       });
-      console.log(`[AUTH] Prisma findByEmail result:`, emailUser);
 
       if (emailUser && emailUser.id !== data.user.id) {
         step = "prisma-syncId";
@@ -63,9 +54,6 @@ const authenticate = async (req, res, next) => {
             await tx.$executeRaw`UPDATE "Administration" SET id = ${data.user.id} WHERE id = ${emailUser.id}`;
             await tx.$executeRaw`UPDATE "User" SET id = ${data.user.id} WHERE id = ${emailUser.id}`;
           });
-          console.log(
-            `[AUTH] Synced Prisma User ID for ${data.user.email}: ${emailUser.id} → ${data.user.id}`,
-          );
         } catch (syncErr) {
           console.error("[AUTH] Failed to sync User ID:", syncErr.message);
         }
@@ -82,7 +70,6 @@ const authenticate = async (req, res, next) => {
         .json({ message: "User not found in application database" });
     }
 
-    console.log(`[AUTH] ✅ Authenticated: role=${dbUser.role}`);
     req.role = dbUser.role; // e.g. "ADMIN", "WARDEN", "STUDENT", ...
 
     next();

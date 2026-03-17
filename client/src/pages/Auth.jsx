@@ -35,8 +35,6 @@ const Auth = () => {
         );
       }
 
-      console.log(data.user);
-
       // Fetch the user's role to determine redirect destination
       try {
         const res = await fetch(`${API_URL}/api/users/me`, {

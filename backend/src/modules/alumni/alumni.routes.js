@@ -5,7 +5,7 @@ import authorize from '../../middleware/role.middleware.js';
 
 const router = express.Router();
 
-router.get('/', authenticate, authorize("ADMIN", "WARDEN", "COUNCIL", "STUDENT"), getAlumni);
+router.get('/', authenticate, authorize("ADMIN", "WARDEN", "COUNCIL"), getAlumni);
 router.post('/create', authenticate, authorize("ADMIN", "WARDEN", "COUNCIL"), addAlumni);
 router.put('/:id', authenticate, authorize("ADMIN", "WARDEN"), editAlumni);
 router.post('/create-bulk', authenticate, authorize("ADMIN"), addBulkAlumni);

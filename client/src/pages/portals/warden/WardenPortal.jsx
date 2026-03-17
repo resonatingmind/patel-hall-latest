@@ -1,45 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdReportProblem, MdListAlt, MdGroups, MdSportsCricket, MdTheaterComedy, MdComputer, MdPerson, MdEdit, MdLogout, MdSchool, MdSecurity } from "react-icons/md";
+import { MdReportProblem, MdGroups, MdPerson, MdSchool } from "react-icons/md";
 import { useAuth } from '../../../context/AuthContext';
-import axios from 'axios';
-import { supabase } from '../../../lib/supabaseClient';
 
 const WarderPortal = () => {
-    const { user, role } = useAuth();
-    const [wardenData, setWardenData] = useState(null);
+    const { user } = useAuth();
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        fetchWardenData();
     }, []);
 
-    const fetchWardenData = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-            
-            if (!token) return;
-
-            const res = await axios.get(
-                `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/role/WARDEN`,
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
-
-            if (res.data && res.data.length > 0) {
-                setWardenData(res.data[0]); // Take the first warden found
-            }
-        } catch (error) {
-            console.error("Error fetching warden data:", error);
-        }
-    };
-
     const userProfile = {
-        name: wardenData?.name || user?.user_metadata?.full_name || user?.user_metadata?.name,
-        role: wardenData?.position || "Warden",
-        email: wardenData?.email || user?.email || "",
+        name: user?.user_metadata?.full_name || user?.user_metadata?.name || "Warden",
+        role: "Warden",
+        email: user?.email || "",
     };
 
     return (
@@ -67,7 +41,7 @@ const WarderPortal = () => {
                                             WARDEN PORTAL
                                         </h1>
                                         <h2 className="text-gold text-base md:text-lg font-medium tracking-widest uppercase font-serif">
-                                            Welcome, Prof. {userProfile.name}
+                                            Welcome
                                         </h2>
                                         <div className="text-white/80 text-sm tracking-wider uppercase font-bold bg-white/10 px-4 py-2 rounded-full inline-block mt-2">
                                             Hall Warden

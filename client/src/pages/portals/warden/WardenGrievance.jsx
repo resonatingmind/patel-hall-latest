@@ -33,7 +33,7 @@ const WardenGrievance = () => {
         setIsLoading(true);
         try {
             const currentToken = await getToken();
-            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/grievance`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/grievances`, {
                 headers: { Authorization: `Bearer ${currentToken}` }
             });
             const fetchedData = response.data;

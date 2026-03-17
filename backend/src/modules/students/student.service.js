@@ -74,9 +74,6 @@ export const createStudentService = async (studentData) => {
         await tx.$executeRaw`UPDATE "Administration" SET id = ${authUser.id} WHERE id = ${existingUser.id}`;
         await tx.$executeRaw`UPDATE "User" SET id = ${authUser.id} WHERE id = ${existingUser.id}`;
       });
-      console.log(
-        `Synced Prisma User ID for ${authUser.email}: ${existingUser.id} → ${authUser.id}`,
-      );
     }
     userId = authUser.id;
   } else {

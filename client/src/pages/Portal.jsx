@@ -8,7 +8,6 @@ import { useAuth } from "../context/AuthContext";
 
 const Portal = () => {
   const { role } = useAuth();
-  console.log(role);
 
   useEffect(() => {
     window.scrollTo(0, 0);

@@ -68,7 +68,6 @@ const Grievance = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log("Grievance Submitted:", formData);
         
         // Mock submission
         const newGrievance = {

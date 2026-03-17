@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("Setting data");
     const initSession = async () => {
       const {
         data: { session },
