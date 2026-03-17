@@ -1,21 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdSchool, MdPerson, MdAdd, MdClose } from "react-icons/md";
-import { useAuth } from '../../../context/AuthContext';
+import { MdArrowBack, MdSearch, MdSchool, MdPerson, MdWorkOutline } from "react-icons/md";
+import { FaLinkedin } from "react-icons/fa";
 import { supabase } from '../../../lib/supabaseClient';
 import axios from 'axios';
-import { toast } from 'sonner';
 
 const allDepartments = ['CS', 'EC', 'EE', 'ME', 'CH', 'CE', 'AE', 'IM', 'IE', 'NA', 'AG', 'MI', 'MT', 'BT', 'MF', 'AR', 'MA', 'PH', 'CY', 'HS', 'GG', 'EX'];
-const departments = ['All', ...allDepartments.sort()];
-
-// Generate an array of valid batches from 20 years ago to present year for dropdown
-const currentYear = new Date().getFullYear();
-const batchYears = Array.from({length: 21}, (_, i) => (currentYear - i).toString());
+const defaultDepartments = ['All', ...allDepartments.sort()];
 
 const CouncilAlumni = () => {
-    const { user } = useAuth();
-    
     // Function to get fresh token
     const getToken = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -33,35 +26,13 @@ const CouncilAlumni = () => {
         search: ''
     });
 
+    const [departments, setDepartments] = useState(defaultDepartments);
     const [batches, setBatches] = useState(['All']);
-
-    // Modal state
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [adding, setAdding] = useState(false);
-    
-    const [formData, setFormData] = useState({
-        fullName: '',
-        department: 'CS',
-        batchYear: new Date().getFullYear().toString()
-    });
 
     useEffect(() => {
         window.scrollTo(0, 0);
         fetchAlumni();
     }, []);
-
-    // Prevent scrolling when modals are open
-    useEffect(() => {
-        if (isAddModalOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
-        }
-
-        return () => {
-            document.body.style.overflow = 'auto';
-        };
-    }, [isAddModalOpen]);
 
     const fetchAlumni = async () => {
         setIsLoading(true);
@@ -73,6 +44,9 @@ const CouncilAlumni = () => {
             const fetchedData = response.data;
             setAllAlumni(fetchedData);
             setAlumni(fetchedData);
+
+            const departmentsList = Array.from(new Set(fetchedData.map(a => a.department).filter(Boolean))).sort();
+            setDepartments(['All', ...departmentsList]);
 
             // Dynamically generate batches based on fetched data
             const batchesList = Array.from(new Set(fetchedData.map(a => String(a.batchYear)))).sort((a, b) => Number(b) - Number(a));
@@ -110,35 +84,29 @@ const CouncilAlumni = () => {
         setAlumni(filtered);
     }, [filters, allAlumni]);
 
-    const handleAddSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (!formData.fullName || !formData.batchYear) {
-            toast.error('Name and Batch Year are required.');
-            return;
-        }
-
-        setAdding(true);
-        try {
-            const currentToken = await getToken();
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/alumni/create`, formData, {
-                headers: { Authorization: `Bearer ${currentToken}` }
-            });
-            setIsAddModalOpen(false);
-            setFormData({
-                fullName: '',
-                department: 'CS',
-                batchYear: new Date().getFullYear().toString()
-            });
-            fetchAlumni(); // Refresh list
-            toast.success("Alumnus added successfully.");
-        } catch (err) {
-            console.error(err);
-            toast.error(`Failed to add alumnus: ${err.response?.data?.message || err.message}`);
-        } finally {
-            setAdding(false);
-        }
-    };
+    const renderProfileCell = (alum) => (
+        <div className="flex flex-col gap-1">
+            {alum.profile && (
+                <div className="flex items-center gap-2 text-gray-700 text-sm">
+                    <MdWorkOutline className="text-gray-400 group-hover:text-gold transition-colors" size={16} />
+                    {alum.profile}
+                </div>
+            )}
+            {alum.linkedin && (
+                <a
+                    href={alum.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm transition-colors"
+                >
+                    <FaLinkedin size={16} /> LinkedIn
+                </a>
+            )}
+            {!alum.profile && !alum.linkedin && (
+                <span className="text-gray-400 text-sm">—</span>
+            )}
+        </div>
+    );
 
     return (
         <div className="bg-ivory text-[#2d1a1a] font-display overflow-x-hidden min-h-screen flex flex-col transition-colors duration-300 pt-10">
@@ -185,15 +153,7 @@ const CouncilAlumni = () => {
                                 <h3 className="text-primary text-2xl font-serif font-bold flex items-center gap-2">
                                     <MdSchool className="text-gold" /> Alumni Directory
                                 </h3>
-                                <p className="text-gray-500 text-sm mt-1">Manage and view records of hall alumni.</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={() => setIsAddModalOpen(true)}
-                                    className="cursor-pointer px-4 py-2 bg-primary text-white font-bold rounded-lg hover:bg-gold transition-colors flex items-center gap-2 text-sm"
-                                >
-                                    <MdAdd /> Add Alum
-                                </button>
+                                <p className="text-gray-500 text-sm mt-1">View complete records of hall alumni.</p>
                             </div>
                          </div>
 
@@ -237,7 +197,8 @@ const CouncilAlumni = () => {
                                     <tr className="bg-primary/5 border-b border-primary/10">
                                         <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Name</th>
                                         <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Department</th>
-                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Batch</th>
+                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Profile</th>
+                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Joining Year</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -251,6 +212,9 @@ const CouncilAlumni = () => {
                                                     <MdSchool className="text-gray-400 group-hover:text-gold transition-colors" size={16} />
                                                     {alum.department}
                                                 </div>
+                                            </td>
+                                            <td className="p-5">
+                                                {renderProfileCell(alum)}
                                             </td>
                                             <td className="p-5 text-right">
                                                 {alum.batchYear && (
@@ -272,50 +236,6 @@ const CouncilAlumni = () => {
                     </div>
                 </div>
             </section>
-
-            {/* Modals */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-                            <h3 className="text-xl font-bold font-serif text-primary">Add New Alumnus</h3>
-                            <button onClick={() => setIsAddModalOpen(false)} className="cursor-pointer text-gray-400 hover:text-red-500"><MdClose size={24}/></button>
-                        </div>
-                        <form onSubmit={handleAddSubmit} className="p-6 overflow-y-auto">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Full Name *</label>
-                                    <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" placeholder="John Doe" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Batch Year *</label>
-                                    <select 
-                                        required 
-                                        value={formData.batchYear} 
-                                        onChange={e => setFormData({...formData, batchYear: e.target.value})} 
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" 
-                                    >
-                                        <option value="" disabled>Select Year</option>
-                                        {batchYears.map(year => <option key={year} value={year}>{year}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Department *</label>
-                                    <select value={formData.department} required onChange={e => setFormData({...formData, department: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold">
-                                        {departments.filter(d=>d!=='All').map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="mt-8 flex justify-end gap-2 flex-shrink-0">
-                                <button type="button" onClick={() => setIsAddModalOpen(false)} disabled={adding} className="cursor-pointer px-6 py-2 border rounded-lg text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
-                                <button type="submit" disabled={adding} className="cursor-pointer px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {adding ? "Adding..." : "Add Alumnus"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
 
         </div>
     );

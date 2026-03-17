@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MdArrowBack, MdSearch, MdSchool, MdPerson, MdAdd, MdClose } from "react-icons/md";
+import { MdArrowBack, MdSearch, MdSchool, MdPerson, MdAdd, MdClose, MdWorkOutline, MdUploadFile, MdCheckCircle, MdError, MdDownload, MdEdit } from "react-icons/md";
+import { FaLinkedin } from "react-icons/fa";
+import Papa from 'papaparse';
 import { useAuth } from '../../../context/AuthContext';
 import { supabase } from '../../../lib/supabaseClient';
 import axios from 'axios';
@@ -25,7 +27,9 @@ const WardenAlumni = () => {
     const [allAlumni, setAllAlumni] = useState([]);
     const [alumni, setAlumni] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState(null);
+    const fileInputRef = React.useRef(null);
 
     const [filters, setFilters] = useState({
         dept: 'All',
@@ -37,12 +41,26 @@ const WardenAlumni = () => {
 
     // Modal state
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [adding, setAdding] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [currentEditId, setCurrentEditId] = useState(null);
     
+    // Import state
+    const [csvFile, setCsvFile] = useState(null);
+    const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
+    const [importResults, setImportResults] = useState({
+        createdAlumni: [],
+        failedAlumni: [],
+    });
+
     const [formData, setFormData] = useState({
         fullName: '',
         department: 'CS',
-        batchYear: new Date().getFullYear().toString()
+        batchYear: new Date().getFullYear().toString(),
+        profile: '',
+        linkedin: ''
     });
 
     useEffect(() => {
@@ -52,7 +70,7 @@ const WardenAlumni = () => {
 
     // Prevent scrolling when modals are open
     useEffect(() => {
-        if (isAddModalOpen) {
+        if (isAddModalOpen || isImportModalOpen || isResultsModalOpen || isEditModalOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'auto';
@@ -61,7 +79,7 @@ const WardenAlumni = () => {
         return () => {
             document.body.style.overflow = 'auto';
         };
-    }, [isAddModalOpen]);
+    }, [isAddModalOpen, isImportModalOpen, isResultsModalOpen, isEditModalOpen]);
 
     const fetchAlumni = async () => {
         setIsLoading(true);
@@ -128,7 +146,9 @@ const WardenAlumni = () => {
             setFormData({
                 fullName: '',
                 department: 'CS',
-                batchYear: new Date().getFullYear().toString()
+                batchYear: new Date().getFullYear().toString(),
+                profile: '',
+                linkedin: ''
             });
             fetchAlumni(); // Refresh list
             toast.success("Alumnus added successfully.");
@@ -138,6 +158,140 @@ const WardenAlumni = () => {
         } finally {
             setAdding(false);
         }
+    };
+
+    const handleEditClick = (alum) => {
+        setFormData({
+            fullName: alum.fullName || '',
+            department: alum.department || 'CS',
+            batchYear: alum.batchYear ? alum.batchYear.toString() : new Date().getFullYear().toString(),
+            profile: alum.profile || '',
+            linkedin: alum.linkedin || ''
+        });
+        setCurrentEditId(alum.id);
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!formData.fullName || !formData.batchYear) {
+            toast.error('Name and Batch Year are required.');
+            return;
+        }
+
+        setEditing(true);
+        try {
+            const currentToken = await getToken();
+            await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/alumni/${currentEditId}`, formData, {
+                headers: { Authorization: `Bearer ${currentToken}` }
+            });
+            setIsEditModalOpen(false);
+            setFormData({
+                fullName: '',
+                department: 'CS',
+                batchYear: new Date().getFullYear().toString(),
+                profile: '',
+                linkedin: ''
+            });
+            setCurrentEditId(null);
+            fetchAlumni(); // Refresh list
+            toast.success("Alumnus updated successfully.");
+        } catch (err) {
+            console.error(err);
+            toast.error(`Failed to update alumnus: ${err.response?.data?.message || err.message}`);
+        } finally {
+            setEditing(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setCsvFile(e.target.files[0]);
+        }
+    };
+
+    const handleImportSubmit = async (e) => {
+        e.preventDefault();
+        if (!csvFile) return toast.error("Please select a CSV file.");
+
+        setIsUploading(true);
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const text = event.target.result;
+            
+            Papa.parse(text, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async (results) => {
+                    if (results.errors.length > 0) {
+                        toast.error('Error parsing CSV file');
+                        setIsUploading(false);
+                        return;
+                    }
+
+                    const parsedData = results.data.map(row => {
+                        const rollNumber = row['rollno'] || '';
+                        let batchYear = '';
+                        if (rollNumber.length >= 2) {
+                            const yy = parseInt(rollNumber.substring(0, 2), 10);
+                            if (!isNaN(yy)) {
+                                batchYear = (yy < 50 ? 2000 + yy : 1900 + yy).toString();
+                            }
+                        }
+                        
+                        let department = '';
+                        if (rollNumber.length >= 4) {
+                            department = rollNumber.substring(2, 4).toUpperCase();
+                        }
+
+                        // Allow explicit overrides from CSV
+                        return {
+                            fullName: row['name'] || '',
+                            department: department || 'Unknown',
+                            batchYear: batchYear || new Date().getFullYear().toString(),
+                            profile: row['profile'] || '',
+                            linkedin: row['linkedin'] || ''
+                        };
+                    });
+
+                    const validData = parsedData.filter(d => d.fullName && d.batchYear);
+
+                    if (validData.length === 0) {
+                        toast.error('No valid alumni data found in CSV');
+                        setIsUploading(false);
+                        return;
+                    }
+
+                    try {
+                        const currentToken = await getToken();
+                        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/alumni/create-bulk`, validData, {
+                            headers: { Authorization: `Bearer ${currentToken}` }
+                        });
+                        
+                        setImportResults({
+                            createdAlumni: response.data.createdAlumni || [],
+                            failedAlumni: response.data.failedAlumni || [],
+                        });
+                        toast.success(`Import complete: ${response.data.successCount} added, ${response.data.failedCount} failed.`);
+                        setIsImportModalOpen(false);
+                        setCsvFile(null);
+                        setIsResultsModalOpen(true);
+                        fetchAlumni(); // Refresh list
+                    } catch (err) {
+                        console.error(err);
+                        toast.error(`Failed to add bulk alumni: ${err.response?.data?.message || err.message}`);
+                    } finally {
+                        setIsUploading(false);
+                    }
+                },
+                error: (err) => {
+                    toast.error('Error reading the file: ' + err.message);
+                    setIsUploading(false);
+                }
+            });
+        };
+        reader.readAsText(csvFile);
     };
 
     return (
@@ -189,6 +343,12 @@ const WardenAlumni = () => {
                             </div>
                             <div className="flex items-center gap-3">
                                 <button 
+                                    onClick={() => setIsImportModalOpen(true)}
+                                    className="cursor-pointer px-4 py-2 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-colors flex items-center gap-2 text-sm"
+                                >
+                                    <MdUploadFile /> Bulk Import
+                                </button>
+                                <button 
                                     onClick={() => setIsAddModalOpen(true)}
                                     className="cursor-pointer px-4 py-2 bg-primary text-white font-bold rounded-lg hover:bg-gold transition-colors flex items-center gap-2 text-sm"
                                 >
@@ -237,7 +397,9 @@ const WardenAlumni = () => {
                                     <tr className="bg-primary/5 border-b border-primary/10">
                                         <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Name</th>
                                         <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Department</th>
-                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Batch</th>
+                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest">Profile</th>
+                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-right">Joining Year</th>
+                                        <th className="p-5 font-serif font-bold text-primary uppercase text-xs tracking-widest text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -252,12 +414,36 @@ const WardenAlumni = () => {
                                                     {alum.department}
                                                 </div>
                                             </td>
+                                            <td className="p-5">
+                                                <div className="flex flex-col gap-1">
+                                                    {alum.profile && (
+                                                        <div className="flex items-center gap-2 text-gray-700 text-sm">
+                                                            <MdWorkOutline className="text-gray-400 group-hover:text-gold transition-colors" size={16} />
+                                                            {alum.profile}
+                                                        </div>
+                                                    )}
+                                                    {alum.linkedin && (
+                                                        <a href={alum.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm transition-colors">
+                                                            <FaLinkedin size={16} /> LinkedIn
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="p-5 text-right">
                                                 {alum.batchYear && (
                                                     <div className="inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-gray-50 text-gray-600 border-gray-200">
                                                         {alum.batchYear}
                                                     </div>
                                                 )}
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                <button 
+                                                    onClick={() => handleEditClick(alum)}
+                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                    title="Edit Alumnus"
+                                                >
+                                                    <MdEdit size={20} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -305,6 +491,14 @@ const WardenAlumni = () => {
                                         {departments.filter(d=>d!=='All').map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
                                 </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Profile / Job Title</label>
+                                    <input type="text" value={formData.profile} onChange={e => setFormData({...formData, profile: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" placeholder="e.g. Software Engineer at Google" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">LinkedIn URL</label>
+                                    <input type="url" value={formData.linkedin} onChange={e => setFormData({...formData, linkedin: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" placeholder="https://linkedin.com/in/..." />
+                                </div>
                             </div>
                             <div className="mt-8 flex justify-end gap-2 flex-shrink-0">
                                 <button type="button" onClick={() => setIsAddModalOpen(false)} disabled={adding} className="cursor-pointer px-6 py-2 border rounded-lg text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
@@ -317,6 +511,225 @@ const WardenAlumni = () => {
                 </div>
             )}
 
+            {/* Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+                            <h3 className="text-xl font-bold font-serif text-primary">Edit Alumnus</h3>
+                            <button onClick={() => { setIsEditModalOpen(false); setCurrentEditId(null); }} className="cursor-pointer text-gray-400 hover:text-red-500"><MdClose size={24}/></button>
+                        </div>
+                        <form onSubmit={handleEditSubmit} className="p-6 overflow-y-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Full Name *</label>
+                                    <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" placeholder="John Doe" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Batch Year *</label>
+                                    <select 
+                                        required 
+                                        value={formData.batchYear} 
+                                        onChange={e => setFormData({...formData, batchYear: e.target.value})} 
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" 
+                                    >
+                                        <option value="" disabled>Select Year</option>
+                                        {/* Allow previously set years even if they are older than batchYears range by adding to dropdown if not present */}
+                                        {!batchYears.includes(formData.batchYear) && formData.batchYear && (
+                                            <option value={formData.batchYear}>{formData.batchYear}</option>
+                                        )}
+                                        {batchYears.map(year => <option key={year} value={year}>{year}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Department *</label>
+                                    <select value={formData.department} required onChange={e => setFormData({...formData, department: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold">
+                                        {departments.filter(d=>d!=='All').map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Profile / Job Title</label>
+                                    <input type="text" value={formData.profile} onChange={e => setFormData({...formData, profile: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" placeholder="e.g. Software Engineer at Google" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">LinkedIn URL</label>
+                                    <input type="url" value={formData.linkedin} onChange={e => setFormData({...formData, linkedin: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gold" placeholder="https://linkedin.com/in/..." />
+                                </div>
+                            </div>
+                            <div className="mt-8 flex justify-end gap-2 flex-shrink-0">
+                                <button type="button" onClick={() => { setIsEditModalOpen(false); setCurrentEditId(null); }} disabled={editing} className="cursor-pointer px-6 py-2 border rounded-lg text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+                                <button type="submit" disabled={editing} className="cursor-pointer px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {editing ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Modal */}
+            {isImportModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
+                            <h3 className="text-xl font-bold font-serif text-primary">Bulk Import CSV</h3>
+                            <button onClick={() => setIsImportModalOpen(false)} className="cursor-pointer text-gray-400 hover:text-red-500">
+                                <MdClose size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleImportSubmit} className="p-6">
+                            <p className="text-sm text-gray-500 mb-4">
+                                Upload a CSV file. The columns should be:<br />
+                                <code className="text-xs bg-gray-100 p-1 rounded">rollno, name, profile, linkedin</code><br/>
+                                <span className="text-xs">Department and Batch Year will be automatically inferred from rollno.</span>
+                            </p>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleFileChange}
+                                className="w-full border rounded-lg p-2 text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                            />
+                            <div className="mt-8 flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsImportModalOpen(false)}
+                                    disabled={isUploading}
+                                    className="cursor-pointer px-6 py-2 border rounded-lg text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isUploading || !csvFile}
+                                    className="cursor-pointer px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isUploading ? "Importing..." : "Upload & Import"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Results Modal */}
+            {isResultsModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 flex-shrink-0">
+                            <h3 className="text-xl font-bold font-serif text-primary">Import Results</h3>
+                            <button onClick={() => setIsResultsModalOpen(false)} className="cursor-pointer text-gray-400 hover:text-red-500">
+                                <MdClose size={24} />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex flex-col gap-6">
+                            {/* Summary */}
+                            <div className="flex gap-4 flex-wrap">
+                                <div className="flex-1 min-w-[150px] bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+                                    <MdCheckCircle className="text-green-600 flex-shrink-0" size={28} />
+                                    <div>
+                                        <p className="text-2xl font-black text-green-700">{importResults.createdAlumni.length}</p>
+                                        <p className="text-xs font-bold text-green-600 uppercase tracking-wider">Successfully Added</p>
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-[150px] bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+                                    <MdError className="text-red-500 flex-shrink-0" size={28} />
+                                    <div>
+                                        <p className="text-2xl font-black text-red-700">{importResults.failedAlumni.length}</p>
+                                        <p className="text-xs font-bold text-red-600 uppercase tracking-wider">Failed</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Successfully added */}
+                            {importResults.createdAlumni.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
+                                        <MdCheckCircle size={16} /> Successfully Added ({importResults.createdAlumni.length})
+                                    </h4>
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead>
+                                                <tr className="bg-green-50 border-b border-green-100">
+                                                    <th className="px-4 py-2 font-bold text-gray-600 text-xs uppercase">Name</th>
+                                                    <th className="px-4 py-2 font-bold text-gray-600 text-xs uppercase">Batch</th>
+                                                    <th className="px-4 py-2 font-bold text-gray-600 text-xs uppercase">Dept</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {importResults.createdAlumni.map((a, i) => (
+                                                    <tr key={i} className="border-b border-gray-100 last:border-0">
+                                                        <td className="px-4 py-2 text-gray-800 font-bold">{a.fullName}</td>
+                                                        <td className="px-4 py-2 text-gray-700">{a.batchYear}</td>
+                                                        <td className="px-4 py-2 text-gray-600">{a.department}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Failed records */}
+                            {importResults.failedAlumni.length > 0 && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                        <h4 className="text-sm font-bold text-red-700 flex items-center gap-2">
+                                            <MdError size={16} /> Failed ({importResults.failedAlumni.length})
+                                        </h4>
+                                        <button
+                                            onClick={() => {
+                                                const headers = "Name,Batch Year,Department,Error";
+                                                const rows = importResults.failedAlumni.map(a => 
+                                                    `"${(a.fullName || '').replace(/"/g, '""')}","${a.batchYear || ''}","${a.department || ''}","${(a.error || '').replace(/"/g, '""')}"`
+                                                );
+                                                const csv = [headers, ...rows].join('\n');
+                                                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                                                const url = URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = 'failed_alumni.csv';
+                                                link.click();
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            className="cursor-pointer px-3 py-1.5 bg-red-50 text-red-700 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 border border-red-200"
+                                        >
+                                            <MdDownload size={14} /> Download Failed CSV
+                                        </button>
+                                    </div>
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead>
+                                                <tr className="bg-red-50 border-b border-red-100">
+                                                    <th className="px-4 py-2 font-bold text-gray-600 text-xs uppercase">Name</th>
+                                                    <th className="px-4 py-2 font-bold text-gray-600 text-xs uppercase">Batch</th>
+                                                    <th className="px-4 py-2 font-bold text-gray-600 text-xs uppercase">Error</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {importResults.failedAlumni.map((a, i) => (
+                                                    <tr key={i} className="border-b border-gray-100 last:border-0">
+                                                        <td className="px-4 py-2 text-gray-800 font-medium">{a.fullName}</td>
+                                                        <td className="px-4 py-2 text-gray-600">{a.batchYear}</td>
+                                                        <td className="px-4 py-2 text-red-600 text-xs">{a.error}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end flex-shrink-0">
+                            <button
+                                onClick={() => setIsResultsModalOpen(false)}
+                                className="cursor-pointer px-6 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-gold transition-colors"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -244,6 +244,8 @@ model Alumni {
   fullName   String
   department String
   batchYear  Int
+  profile    String?
+  linkedin   String?
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

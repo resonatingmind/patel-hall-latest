@@ -22,11 +22,29 @@ export const addAlumni = async (req, res) => {
     }
 };
 
+export const editAlumni = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+        const updatedAlum = await alumniService.updateAlumni(id, data);
+        res.status(200).json({ message: 'Alumnus updated successfully.', data: updatedAlum });
+    } catch (error) {
+        console.error('Error updating alumni:', error);
+        res.status(400).json({ message: error.message || 'Failed to update alumnus.' });
+    }
+};
+
 export const addBulkAlumni = async (req, res) => {
     try {
         const alumniList = req.body.alumni || req.body; 
         const result = await alumniService.createBulkAlumni(alumniList);
-        res.status(201).json({ message: `${result.count} alumni added successfully.`, count: result.count });
+        res.status(201).json({ 
+            message: `${result.successCount} alumni added successfully.`, 
+            successCount: result.successCount,
+            failedCount: result.failedCount,
+            createdAlumni: result.createdAlumni,
+            failedAlumni: result.failedAlumni,
+        });
     } catch (error) {
         console.error('Error in bulk creating alumni:', error);
         res.status(400).json({ message: error.message || 'Failed to add alumni in bulk.' });

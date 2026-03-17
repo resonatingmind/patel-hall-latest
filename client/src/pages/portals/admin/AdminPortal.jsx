@@ -474,7 +474,7 @@ const AdminPortal = () => {
               </div>
             </Link>
 
-            {/* Alumni */}
+            {/* Alumni */} 
             <Link
               to="/portal/admin/alumni"
               className="group relative overflow-hidden rounded-xl bg-ivory border-2 border-primary/10 hover:border-gold/50 p-8 text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1"

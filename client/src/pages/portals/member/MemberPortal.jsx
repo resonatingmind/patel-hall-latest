@@ -345,7 +345,7 @@ const MemberPortal = () => {
       {/* Action Buttons Section */}
       <section className="py-16 px-4 md:px-20 lg:px-40 flex justify-center bg-white">
         <div className="max-w-[1200px] w-full">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {/* Button 1: View Participation Log */}
             <Link
               to="/portal/participation-log"
@@ -421,6 +421,33 @@ const MemberPortal = () => {
                 </p>
                 <span className="text-primary font-bold text-sm tracking-wider uppercase border-b-2 border-transparent group-hover:border-gold transition-all inline-flex items-center gap-2">
                   Lodge Complaint{" "}
+                  <span className="material-symbols-outlined text-sm">
+                    arrow_forward
+                  </span>
+                </span>
+              </div>
+            </Link>
+
+            {/* Button 4: Council Alumni */}
+            <Link
+              to="/portal/alumni"
+              className="hidden group relative overflow-hidden rounded-xl bg-ivory border-2 border-primary/10 hover:border-gold/50 p-8 text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <MdGroups size={120} />
+              </div>
+              <div className="relative z-10">
+                <span className="bg-primary/5 text-primary p-3 rounded-lg inline-block mb-4 group-hover:bg-primary group-hover:text-gold transition-colors">
+                  <MdGroups size={32} />
+                </span>
+                <h3 className="text-xl font-bold text-deep-maroon font-serif mb-2">
+                  Alumni
+                </h3>
+                <p className="text-gray-600 text-sm mb-6">
+                  View alumni directory curated by the council.
+                </p>
+                <span className="text-primary font-bold text-sm tracking-wider uppercase border-b-2 border-transparent group-hover:border-gold transition-all inline-flex items-center gap-2">
+                  View Alumni{" "}
                   <span className="material-symbols-outlined text-sm">
                     arrow_forward
                   </span>

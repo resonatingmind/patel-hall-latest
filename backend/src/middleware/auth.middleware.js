@@ -19,11 +19,16 @@ const authenticate = async (req, res, next) => {
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      console.error(`[AUTH] Supabase getUser failed at step '${step}':`, error?.message ?? "no user returned");
+      console.error(
+        `[AUTH] Supabase getUser failed at step '${step}':`,
+        error?.message ?? "no user returned",
+      );
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    console.log(`[AUTH] Supabase user OK: id=${data.user.id}, email=${data.user.email}`);
+    console.log(
+      `[AUTH] Supabase user OK: id=${data.user.id}, email=${data.user.email}`,
+    );
 
     // Attach Supabase auth user to request
     req.user = data.user;
@@ -84,7 +89,13 @@ const authenticate = async (req, res, next) => {
   } catch (err) {
     console.error(`[AUTH] ❌ EXCEPTION at step '${step}':`, err.message);
     console.error(err.stack);
-    res.status(401).json({ message: "Authentication failed", debugStep: step, debugError: err.message });
+    res
+      .status(401)
+      .json({
+        message: "Authentication failed",
+        debugStep: step,
+        debugError: err.message,
+      });
   }
 };
 

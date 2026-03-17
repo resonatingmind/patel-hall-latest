@@ -14,7 +14,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  process.env.FRONTEND_URL,       // set this in Render env vars
+  process.env.FRONTEND_URL, // set this in Render env vars
 ].filter(Boolean);
 
 app.use(
@@ -28,7 +28,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 
@@ -78,7 +78,10 @@ app.get("/api/debug/full", async (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(" ")[1];
     result.token = token
-      ? { length: token.length, preview: `${token.slice(0, 20)}…${token.slice(-10)}` }
+      ? {
+          length: token.length,
+          preview: `${token.slice(0, 20)}…${token.slice(-10)}`,
+        }
       : "❌ No Bearer token in Authorization header";
     if (!token) return res.json(result);
 
@@ -122,7 +125,11 @@ app.get("/api/debug/full", async (req, res) => {
 
     result.step = "done";
   } catch (e) {
-    result.error = { message: e.message, failedAtStep: result.step, stack: e.stack?.split("\n").slice(0, 5) };
+    result.error = {
+      message: e.message,
+      failedAtStep: result.step,
+      stack: e.stack?.split("\n").slice(0, 5),
+    };
   }
 
   return res.json(result);
