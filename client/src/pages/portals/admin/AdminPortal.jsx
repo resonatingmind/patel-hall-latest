@@ -123,7 +123,7 @@ const AdminPortal = () => {
       </section>
 
       {/* Profile & Mess Card Section */}
-      <section className="py-12 px-4 md:px-20 lg:px-40 flex justify-center -mt-20 relative z-20">
+      <section className="hidden py-12 px-4 md:px-20 lg:px-40 justify-center -mt-20 relative z-20">
         <div className="max-w-[1200px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Profile Card */}
           <div className="bg-white rounded-xl shadow-xl overflow-hidden border-t-4 border-gold group flex flex-col h-full">
@@ -132,7 +132,7 @@ const AdminPortal = () => {
                 <h3 className="text-primary text-2xl font-serif font-bold">
                   Personal Details
                 </h3>
-                {isStudent && (
+                {(
                   <button
                     onClick={() => setIsEditModalOpen(true)}
                     className="text-gray-400 hover:text-primary transition-colors cursor-pointer"
@@ -532,7 +532,7 @@ const AdminPortal = () => {
       </section>
 
       {/* Edit Profile Modal (only for admins who are also students) */}
-      {isStudent && (
+      {(
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}

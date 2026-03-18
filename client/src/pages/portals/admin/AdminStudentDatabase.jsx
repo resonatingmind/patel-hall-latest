@@ -815,7 +815,7 @@ const AdminStudentDatabase = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Batch Year *
+                    Joining Year *
                   </label>
                   <select
                     required

@@ -105,7 +105,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onProfileUpdated }) => {
 
     const userId = session.user.id;
     const fileExt = file.name.split(".").pop();
-    const filePath = `avatar/${userId}.${fileExt}`;
+    const filePath = `avatar/${userId}-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("Patelhall")

@@ -240,6 +240,8 @@ const updateMyProfileService = async (userId, updateData) => {
     image,
   } = updateData;
 
+  const previousImageUrl = student.image;
+
   const updated = await prisma.student.update({
     where: { id: student.id },
     data: {
@@ -253,6 +255,40 @@ const updateMyProfileService = async (userId, updateData) => {
     },
   });
 
+  // Delete previous profile image from Supabase storage ONLY after the new image
+  // is successfully persisted in DB.
+  if (
+    typeof image === "string" &&
+    image.length > 0 &&
+    updated.image === image &&
+    previousImageUrl &&
+    previousImageUrl !== image
+  ) {
+    try {
+      const urlParts = previousImageUrl.split("/storage/v1/object/public/");
+      if (urlParts.length === 2) {
+        const [bucketAndPath] = urlParts[1].split("?");
+        const [bucket, ...pathParts] = bucketAndPath.split("/");
+        const filePath = pathParts.join("/");
+
+        if (bucket && filePath) {
+          const { error } = await supabaseAdmin.storage
+            .from(bucket)
+            .remove([filePath]);
+
+          if (error) {
+            console.error(
+              "Failed to delete previous profile image from Supabase:",
+              error.message,
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting previous profile image from Supabase:", err);
+    }
+  }
+
   return updated;
 };
 
@@ -265,7 +301,6 @@ const getAdministrationPageService = async () => {
     include: { administration: true },
     orderBy: { createdAt: "asc" },
   });
-
   return users
     .filter((user) => user.administration)
     .map((user) => ({
