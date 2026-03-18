@@ -13,6 +13,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://patel-hall.vercel.app",
   process.env.FRONTEND_URL, // set this in Render env vars
 ].filter(Boolean);
 
