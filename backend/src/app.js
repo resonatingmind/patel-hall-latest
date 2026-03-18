@@ -21,6 +21,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // allow requests with no origin (mobile apps, curl, etc.)
+      console.log("Incoming Origin:", origin);
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -28,6 +29,7 @@ app.use(
       }
     },
     credentials: true,
+    optionsSuccessStatus: 200,
   }),
 );
 app.use(express.json());
